@@ -1,0 +1,127 @@
+# ============================================================================
+# Zero-Trust Hybrid AI Pipeline - Prometheus Configuration
+# ============================================================================
+#
+# This configuration scrapes metrics from:
+#   • Orchestrator service (FastAPI + custom metrics)
+#   • Ollama instances on each inference node
+#   • Node exporters for hardware metrics
+#
+# ============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  
+  external_labels:
+    monitor: 'zero-trust-hybrid-ai'
+    environment: 'production'
+
+# ============================================================================
+# Alerting Configuration
+# ============================================================================
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - alertmanager:9093
+
+# ============================================================================
+# Rule Files
+# ============================================================================
+
+rule_files:
+  # - "alerts/*.yml"
+
+# ============================================================================
+# Scrape Configurations
+# ============================================================================
+
+scrape_configs:
+  # ==========================================================================
+  # Orchestrator Metrics
+  # ==========================================================================
+  - job_name: 'orchestrator'
+    static_configs:
+      - targets: ['orchestrator:8000']
+        labels:
+          service: 'orchestrator'
+          role: 'router'
+    
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # ==========================================================================
+  # Aegis (RTX 4080 Super) - Primary Inference
+  # ==========================================================================
+  - job_name: 'aegis-llama'
+    static_configs:
+      - targets: ['aegis:8080']
+        labels:
+          service: 'llama-server'
+          role: 'primary-inference'
+          hardware: 'rtx-4080-super'
+    
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  - job_name: 'aegis-node'
+    static_configs:
+      - targets: ['aegis:9100']
+        labels:
+          host: 'aegis'
+          role: 'primary-inference'
+    
+    # Node exporter for system metrics
+
+  # ==========================================================================
+  # Ryzen-AI (Ryzen AI 395) - Multi-Model Specialist
+  # ==========================================================================
+  - job_name: 'ryzen-ai-ollama'
+    static_configs:
+      - targets: ['ryzen-ai:11434']
+        labels:
+          service: 'ollama'
+          role: 'multi-model'
+          hardware: 'ryzen-ai-395'
+    
+    metrics_path: '/api/metrics'
+    scrape_interval: 15s
+
+  - job_name: 'ryzen-ai-node'
+    static_configs:
+      - targets: ['ryzen-ai:9100']
+        labels:
+          host: 'ryzen-ai'
+          role: 'multi-model'
+
+  # ==========================================================================
+  # Mac Mini M4 Pro - Orchestrator / Backup
+  # ==========================================================================
+  - job_name: 'mac-mini-ollama'
+    static_configs:
+      - targets: ['mac-mini-m4:11434']
+        labels:
+          service: 'ollama'
+          role: 'backup-inference'
+          hardware: 'm4-pro'
+    
+    metrics_path: '/api/metrics'
+    scrape_interval: 15s
+
+  # ==========================================================================
+  # Docker Container Metrics (cAdvisor)
+  # ==========================================================================
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    
+    scrape_interval: 30s
+
+  # ==========================================================================
+  # Prometheus Self-Monitoring
+  # ==========================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

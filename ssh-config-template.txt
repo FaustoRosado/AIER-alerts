@@ -1,0 +1,22 @@
+# Zero-Trust Hybrid AI Pipeline - SSH Configuration
+# Place this file at ~/.ssh/config on your command machine (Nexus or Phantom)
+
+Host aegis
+    HostName aegis
+    User aegis
+
+Host ryzen-ai
+    HostName ryzen-ai
+    User YOUR_SSH_USER
+
+Host kali-nexus
+    HostName kali-nexus
+    User kali-nexus
+
+Host phantom
+    HostName phantom
+    User YOUR_SSH_USER
+
+Host nexus
+    HostName nexus
+    User nexus

@@ -1,0 +1,300 @@
+# Zero-Trust Hybrid AI Pipeline - Docker Compose
+# ==============================================
+#
+# This compose file provides multiple deployment profiles:
+#
+# 1. Local Development (GPU):
+#    docker compose --profile gpu up
+#
+# 2. CPU-Only Development:
+#    docker compose --profile cpu up
+#
+# 3. Student Demo (minimal resources):
+#    docker compose --profile demo up
+#
+# Prerequisites:
+#   - Docker with Docker Compose v2
+#   - NVIDIA Container Toolkit (for GPU profile)
+#   - 16GB+ RAM for CPU profile, 8GB+ for demo profile
+#
+
+version: '3.8'
+
+# ============================================================================
+# Common configuration
+# ============================================================================
+
+x-common-env: &common-env
+  TZ: America/New_York
+  PYTHONUNBUFFERED: "1"
+
+x-healthcheck: &default-healthcheck
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+# ============================================================================
+# Services
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # Orchestrator - Runs on all profiles
+  # ==========================================================================
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    container_name: hybrid-ai-orchestrator
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *common-env
+      # These will be overridden based on profile
+      AEGIS_URL: ${AEGIS_URL:-http://ollama-gpu:11434}
+      RYZEN_AI_URL: ${RYZEN_AI_URL:-http://ollama-cpu:11434}
+    healthcheck:
+      <<: *default-healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    depends_on:
+      - ollama-gpu
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+  # ==========================================================================
+  # GPU Inference Node (simulates Aegis locally)
+  # ==========================================================================
+  ollama-gpu:
+    image: ollama/ollama:latest
+    container_name: ollama-gpu
+    profiles:
+      - gpu
+      - full
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-gpu-data:/root/.ollama
+    environment:
+      <<: *common-env
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_ORIGINS: "*"
+      NVIDIA_VISIBLE_DEVICES: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      <<: *default-healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+  # ==========================================================================
+  # CPU Inference Node (for development without GPU)
+  # ==========================================================================
+  ollama-cpu:
+    image: ollama/ollama:latest
+    container_name: ollama-cpu
+    profiles:
+      - cpu
+      - demo
+      - full
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama-cpu-data:/root/.ollama
+    environment:
+      <<: *common-env
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_ORIGINS: "*"
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    healthcheck:
+      <<: *default-healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Model Preloader - Pulls required models on startup
+  # ==========================================================================
+  model-preloader:
+    image: ollama/ollama:latest
+    container_name: model-preloader
+    profiles:
+      - gpu
+      - cpu
+      - full
+    volumes:
+      - ollama-gpu-data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Ollama to be ready..."
+        sleep 10
+        
+        echo "Pulling models..."
+        
+        # Primary inference model
+        ollama pull llama3.2:3b
+        
+        # Code specialist
+        ollama pull qwen2.5-coder:1.5b
+        
+        # Embedding model
+        ollama pull nomic-embed-text
+        
+        echo "Model preloading complete!"
+    depends_on:
+      ollama-gpu:
+        condition: service_healthy
+    networks:
+      - ai-mesh
+
+  # ==========================================================================
+  # Demo Model Preloader (minimal models for Codespaces)
+  # ==========================================================================
+  demo-preloader:
+    image: ollama/ollama:latest
+    container_name: demo-preloader
+    profiles:
+      - demo
+    volumes:
+      - ollama-cpu-data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Ollama to be ready..."
+        sleep 10
+        
+        echo "Pulling minimal demo models..."
+        
+        # Smallest functional model for demo
+        ollama pull tinyllama
+        ollama pull nomic-embed-text
+        
+        echo "Demo models ready!"
+    depends_on:
+      ollama-cpu:
+        condition: service_healthy
+    networks:
+      - ai-mesh
+
+  # ==========================================================================
+  # Web UI (Optional - for interactive demo)
+  # ==========================================================================
+  webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: hybrid-ai-webui
+    profiles:
+      - webui
+      - full
+    ports:
+      - "3000:8080"
+    environment:
+      <<: *common-env
+      OLLAMA_BASE_URL: http://ollama-gpu:11434
+      WEBUI_AUTH: "false"  # Disable auth for demo
+    volumes:
+      - webui-data:/app/backend/data
+    depends_on:
+      - ollama-gpu
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Monitoring - Prometheus + Grafana (Optional)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    profiles:
+      - monitoring
+      - full
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    profiles:
+      - monitoring
+      - full
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Compliance Logging (for HIPAA audit trail)
+  # ==========================================================================
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    profiles:
+      - logging
+      - full
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+    networks:
+      - ai-mesh
+    restart: unless-stopped
+
+# ============================================================================
+# Networks
+# ============================================================================
+
+networks:
+  ai-mesh:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# ============================================================================
+# Volumes
+# ============================================================================
+
+volumes:
+  ollama-gpu-data:
+    name: hybrid-ai-ollama-gpu
+  ollama-cpu-data:
+    name: hybrid-ai-ollama-cpu
+  webui-data:
+    name: hybrid-ai-webui
+  prometheus-data:
+    name: hybrid-ai-prometheus
+  grafana-data:
+    name: hybrid-ai-grafana
+  loki-data:
+    name: hybrid-ai-loki
