@@ -1,0 +1,151 @@
+# Universal .gitignore for AIER Frontend Visualization Project
+
+# OS Files
+.DS_Store
+._*
+**/._*
+Thumbs.db
+desktop.ini
+*.DS_Store
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-*
+
+# Dependencies
+node_modules/
+venv/
+env/
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+__pycache__/
+*.pyc
+*.pyo
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.eggs/
+.tox/
+.coverage
+htmlcov/
+coverage/
+*.log
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars.json
+*.backup
+
+# AWS - CRITICAL: Never commit credentials
+*.pem
+.aws/
+credentials
+config
+aws-exports.js
+**/aws-credentials*
+**/aws-config*
+
+# Secrets and keys - CRITICAL
+*.key
+*.secret
+.env
+.env.*
+.env.local
+.env.production
+.env.*.local
+secrets.json
+kaggle.json
+**/kaggle.json
+
+# Team credentials - NEVER COMMIT
+team-credentials/
+*credentials*.txt
+*password*.txt
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+
+# Testing
+.pytest_cache/
+.coverage
+coverage/
+*.cover
+.nyc_output/
+
+# Data files - CRITICAL: Don't commit dataset
+data/*.csv
+data/*.json
+data/**/*.csv
+data/**/*.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*.bak
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Keep project structure files
+!.gitkeep
+!data/.gitkeep
+
+# Keep all documentation in docs folder
+!docs/**/*.md
+!docs/**/*.txt
+
+# Keep root README
+!README.md
+
+# Keep scripts
+!scripts/*.sh
+!scripts/*.ps1
+!scripts/*.py
+
+# Keep configuration files
+!package.json
+!tsconfig.json
+!requirements.txt
+!*.tf
+
+# Exclude parent directory files (these stay in capstone root)
+../*.md
+../*.txt
+../._*
