@@ -149,3 +149,17 @@ temp/
 ../*.md
 ../*.txt
 ../._*
+
+# Extraneous status files (temporary setup documentation - should not be in repo)
+COMPLETE_SETUP.md
+CREDENTIAL_DISTRIBUTION.md
+DEMO_CHECKLIST.md
+FINAL_STATUS.md
+GITHUB_READY.md
+IAM_USERS_STATUS.md
+MOCK_RUN_COMPLETE.md
+PUSH_TO_GITHUB.md
+READY_TO_DEMO.md
+SECURITY_INCIDENT.md
+STATUS.md
+STREAMLINED_SETUP.md
