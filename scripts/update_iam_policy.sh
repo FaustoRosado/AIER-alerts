@@ -170,5 +170,5 @@ echo "  ✓ Change their own passwords"
 echo "  ✓ Manage their own access keys"
 echo "  ✓ View password policy requirements"
 echo ""
-echo "Tell Sheniese to try logging in again and changing her password."
+echo "Team members can now try logging in again and changing their passwords."
 
