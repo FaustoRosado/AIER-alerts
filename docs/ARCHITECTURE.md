@@ -19,7 +19,7 @@ graph TD
     subgraph "Cloud Platform (AWS)"
         J -- "Sync when connection restored" --> K{API 2: Lambda/ECS};
         K --> L[1. Process Queued/Escalated Data];
-        L --> M[2. Invoke Larger LLM (6B-7B)];
+        L --> M[2. Invoke Larger LLM 6B-7B];
         M --> N[3. Final Decision Analysis];
         N --> O{Dispatch Layer};
         O --> P[("fa:fa-aws AWS SNS")];
