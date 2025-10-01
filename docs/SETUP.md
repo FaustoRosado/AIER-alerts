@@ -123,8 +123,8 @@ Team leads can grant temporary access using the provided IAM policy templates. S
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/[your-org]/aier-frontend-visualization.git
-cd aier-frontend-visualization
+git clone https://github.com/[your-org]/AIER-alerts.git
+cd AIER-alerts
 ```
 
 ### 2. Install Python Dependencies
