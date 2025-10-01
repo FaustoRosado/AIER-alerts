@@ -27,6 +27,7 @@ TEAM_MEMBERS=(
     "cuoung"
     "cyberdog"
     "crystal"
+    "sheniese"
 )
 
 # Generate random temporary password
@@ -140,6 +141,35 @@ if [ -z "$EXISTING_POLICY" ]; then
           "Effect": "Allow",
           "Action": [
             "ec2:Describe*"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "AllowUsersToManageOwnPassword",
+          "Effect": "Allow",
+          "Action": [
+            "iam:ChangePassword",
+            "iam:GetUser"
+          ],
+          "Resource": "arn:aws:iam::*:user/${aws:username}"
+        },
+        {
+          "Sid": "AllowUsersToManageOwnAccessKeys",
+          "Effect": "Allow",
+          "Action": [
+            "iam:CreateAccessKey",
+            "iam:DeleteAccessKey",
+            "iam:ListAccessKeys",
+            "iam:UpdateAccessKey",
+            "iam:GetAccessKeyLastUsed"
+          ],
+          "Resource": "arn:aws:iam::*:user/${aws:username}"
+        },
+        {
+          "Sid": "AllowUsersToViewAccountPasswordPolicy",
+          "Effect": "Allow",
+          "Action": [
+            "iam:GetAccountPasswordPolicy"
           ],
           "Resource": "*"
         }
