@@ -1,0 +1,218 @@
+﻿Team: [AI/ER pronounced Air]
+1. Infrastructure as Code (IaC)
+Github Repo
+Tool: Terraform
+The create_and_secure_repo.sh script automates both the creation and security configuration of a GitHub repository using the GitHub CLI (gh). It prompts for essential parameters such as repository name, branch to protect, and description, or accepts them through environment variables for automation.
+Main Functions:
+1. Authentication Check
+   Confirms that the user is authenticated with GitHub CLI or initiates login if needed.
+2. Repository Creation
+   - Checks if the target repository exists.
+   - If not found, creates a new repository with the provided name, description, and visibility (private/public).
+   - Optionally clones the repository locally.
+3. Security and Governance Configuration
+   - Applies branch protection rules to the specified branch (typically main).
+   - Enforces signed commits.
+   - Requires pull requests with at least one approving review and no bypass.
+   - Requires defined status checks (Terraform Validate, Lint, CI) to pass before merging.
+   - Restricts push access to specific users or teams.
+   - Disables force pushes and branch deletions.
+4. Repository-Level Security Settings
+   - Enables GitHub Advanced Security features.
+   - Enables secret scanning and push protection.
+   - Enforces consistency with automatic branch deletion on merge.
+5. Output
+   - Prints clear confirmation after successful repository creation and policy enforcement.
+
+
+Overall Flow:
+User runs the script → Script prompts for repo info → Repository is created (if missing) → Security and branch rules are applied → Repository is ready for CI/CD use.
+Terraform File Explanations
+1. network-core.tf
+   - Defines the core networking components for the AWS environment.
+   - Likely includes the VPC definition, subnets (public and private), Internet gateway, NAT gateway, and route tables.
+   - Establishes the fundamental network topology used by other Terraform modules.
+2. routing.tf
+   - Manages the routing logic between subnets and gateways.
+   - Typically creates route table associations for public and private subnets.
+   - Ensures correct routing for internal communication and outbound Internet access.
+3. variables.tf
+   - Declares input variables used throughout the Terraform configuration.
+   - Includes definitions for VPC CIDR ranges, subnet CIDRs, AWS region, and naming prefixes.
+   - Provides type and default values to make the infrastructure modular and reusable.
+4. outputs.tf
+   - Defines output values that Terraform displays after apply.
+   - Usually includes IDs or ARNs for VPC, subnets, and gateways.
+   - These outputs can be consumed by other Terraform modules or pipeline steps.
+5. versions.tf
+   - Specifies Terraform and provider version requirements.
+   - Locks provider versions to maintain reproducibility and prevent unexpected behavior due to upgrades.
+   - May include required Terraform version and AWS provider source/version.
+Overall Infrastructure Flow
+1. The network-core.tf file builds the foundational AWS networking stack.
+2. routing.tf connects the subnets and gateways to ensure connectivity.
+3. variables.tf provides configuration flexibility for environment-specific values.
+4. versions.tf ensures consistent versions across deployments.
+5. outputs.tf shares important identifiers for downstream resources or modules.
+6. The GitHub repository created by create_and_secure_repo.sh hosts this Terraform code and enforces security policies for collaborative development.
+2. 🌐 Updated Topology & Architecture Diagrams
+  3. 🧪 CI/CD Pipeline Implementation
+Tool: GitHub Actions
+The project is set up to use GitHub Actions. This is determined because the githubrepo.sh script is built entirely around the GitHub ecosystem. It uses the gh CLI to configure repository settings and specifically sets up "required status checks", which is the mechanism GitHub Actions jobs use to report their success or failure to a pull request. This native integration provides a seamless workflow from code commit to deployment without requiring third-party CI/CD platforms
+Stages:
+The pipeline follows a standard GitOps workflow centered around Pull Requests (PRs).
+1. Source
+Repository & Branch: The pipeline operates on a GitHub repository. The primary integration point is a protected branch, which defaults to main.
+Trigger: The pipeline is triggered by a pull request targeting the main branch. The final deployment step is triggered by a merge into the main branch.
+2. Build
+The build stage focuses on validating the Infrastructure as Code (IaC) before generating a plan.
+Linting: The pipeline is configured to run a Lint check. For Terraform, this typically involves running terraform fmt --check to ensure all code adheres to canonical formatting.
+IaC Validation: A Terraform Validate check is explicitly required. This runs the terraform validate command to check the syntax and arguments of the Terraform configuration files.
+3. Test
+The test stage focuses on security scanning and creating a deployment plan for review.
+Secret Scanning: The repository is configured to use GitHub's native secret scanning and push protection features. This automatically detects credentials in the code and can block commits that contain them.
+Deployment Plan (as a Test): The required status check named "CI" represents the step where terraform plan is executed. The output of this plan serves as a "test" artifact, allowing reviewers to see the exact changes that will be made to the infrastructure before providing their approval.
+4. Deploy
+The deployment model is based on applying the Terraform configuration directly upon a successful merge to the main branch.
+Environment: The Terraform code is structured for a single environment deployment. The default variables configure a "sandbox" environment. 
+Strategy: Deployment is a direct terraform apply. 
+Security Gates
+The githubrepo.sh script establishes several automated security gates that block a pull request from being merged.
+* Failed Status Checks: A PR cannot be merged if the Lint, Terraform Validate, or CI (terraform plan) checks fail.
+* Pull Request Reviews: A merge is blocked until at least one approving review is submitted by a team member.
+* Secret Push Protection: The configuration for secret_scanning_push_protection can block a git push command entirely if a known secret pattern is detected, preventing credentials from ever reaching the repository.
+Project-Specific Pipeline Elements:
+The primary DevSecOps control is GitHub's native secret scanning. Container scanning and DAST are not applicable as the project does not involve application code or containers.
+Pipeline Diagram
+The flow is as follows:
+1. A developer pushes code to a feature branch and opens a Pull Request against main.
+2. GitHub Actions Triggered: The PR automatically triggers the validate-and-plan job.
+3. Validation Stage: The job runs terraform fmt, validate, and plan. These jobs report their status back to the PR as required status checks.
+4. Decision Point (Gate): The PR is blocked from merging until:
+   * All status checks (Lint, Validate, CI) have passed.
+   * A manual approval has been given by a team member.
+5. Merge & Deploy: Upon successful merge, the push event on the main branch triggers the apply job.
+6. Apply Stage: The apply job initializes Terraform, authenticates to AWS, and runs terraform apply to provision the infrastructure.
+
+
+4. 🔗 AWS & Third-Party Tool Integration
+The Terraform code is responsible for deploying a foundational two-tier network. The configured services are:
+AWS VPC: A Virtual Private Cloud to serve as an isolated network environment.   
+Subnets: One public and one private subnet across two different availability zones.   
+Internet Gateway: To provide internet access to the public subnet.   
+NAT Gateway & Elastic IP: To allow resources in the private subnet to initiate outbound internet traffic without being directly reachable from the internet.   
+Route Tables: To control the flow of traffic within the VPC, directing public traffic to the Internet Gateway and private traffic to the NAT Gateway.  
+
+
+5. 📊 Deployment Evidence
+Here is a screenshot of the files being successfully applied.
+  
+
+The outputs of the terraform match the     
+6. 🔄 End-to-End Workflow Validation
+7. 👥 Team Member Contributions (Sprint 2)
+Shay: Created Sprint 2 Deliverables document to break down all required sections and tasks. Successfully deployed working Front-End/Llama.cpp server
+Javier: Reviewed, polished, and submitted the final documentation package, contributed to documentation (including Llama-CPP setup).
+Cuong: 
+Crystal:
+Fausto: 
+**Sprint Goal:** Provision the foundational, version-controlled AWS CI/CD backbone using Terraform, establishing the automated pathway for code to travel from source control to an artifact repository.
+**Corresponding Capstone Objective:** Provision Core CI/CD Infrastructure via IaC.
+Section 1: Coordination and Responsibilities
+Category
+	Details
+	Submission Process
+	Javier will handle the final submission by Monday. Shay will create the main deliverables document, while all members will contribute documentation including the GitHub repo, Terraform configurations, individual notes, and topology diagrams to complete the Sprint 2 package.
+	Proof of Work
+	Continuous commits to the GitHub repository serve as the group’s official 'proof of work.' (Add repo and any screenshots)
+	Deliverable Balance
+	Equal focus between DevSecOps (Terraform infrastructure) and API/Model development. Cuong will handle Terraform skeleton; Cuong and Fausto will work on github repo
+	 Next Steps
+	Once AI/API is stable locally with suitable front end, AND all members have documentation complete understanding of the product we will move over to AWS
+	
+
+	
+
+	Section 2: Technical Deliverables
+2.1: Version-Controlled Terraform Configuration
+
+
+A fully functional Terraform configuration (.tf files) capable of provisioning the AWS CI/CD backbone, including CodeCommit, S3, ECR, CodePipeline, and CodeBuild.
+Purpose: 
+Establishes a repeatable, auditable, and scalable IaC foundation, supporting consistent provisioning across environments.
+Artifacts: 
+main.tf, variables.tf, outputs.tf, modular structure (/modules/pipeline, /modules/iam, etc.), GitHub repo URL with commit log.
+2.2: IAM Policy and Role Definitions (as Code)
+
+
+Description:
+Terraform modules defining IAM roles and policies for CI/CD services, adhering to least-privilege principles.
+Purpose: 
+Integrates 'Security by Design' by codifying IAM rules and ensuring auditability.
+Artifacts: 
+* main.tf, variables.tf, outputs.tf
+* Modular directory structure (e.g., /modules/pipeline, /modules/iam/)
+* GitHub repository URL with commit history and supporting documentation
+
+
+2.3: Initial buildspec.yml for CI Pipeline
+Description: 
+Terraform modules defining IAM roles and policies for CI/CD services, adhering strictly to the principle of least privilege.
+Purpose: 
+Implements “Security by Design” through codified IAM definitions, eliminating manual console configuration errors and ensuring auditability.
+Artifacts: 
+iam.tf and JSON policy files sample app build logs/screenshots.
+Section 3: AI Model Refinement (Technical Add-On)
+Topic
+	Issue/Finding
+	Solution/Next Step
+	Model Response
+	Current Python-based model lacks context, causing inconsistent outputs.
+	Develop an HTML Front-End with a Context Field to establish rules/scope.
+	Local Hosting
+	Server instability on external instances.
+	Continue local hosting until stable AWS deployment.
+	Goal
+	Model should deliver quick, rule-based decision outputs (e.g., heart rate alerts).
+	Refine context logic and bake rules into the API.
+	
+
+
+
+
+
+Section 4: Timeline Overview (Sprint 2 Snapshot)
+
+
+Team Member
+	Task
+	Deadline/Timeline
+	Cuong & Fausto
+	Work on the GitHub repository for the AI/API, then the front-end.
+	Ongoing
+	Cyristal
+	Contribute findings from Llama-CPP use, front-end developments, and documentation for Sprint 2.
+	Ongoing
+	Cuong
+	1. Create the collective GitHub repository.
+2. Set up GitHub to AWS Terraform integration (CI/CD pipeline/skeleton IaC).
+3. Send front-end code for testing/backup if needed.
+	Friday at noon.
+	Shay
+	1. Create a Sprint 2 Deliverables document to break down all required sections and tasks.
+2. Continue working on the Front-End.
+3. Document personal setup and testing.
+	Deliverables document started tonight; all final submissions by Friday.
+	Javier
+	1. Review, polish, and submit the final documentation package.
+2. Contribute to documentation (including Llama-CPP setup).
+	Review and submit by Monday.
+	All Members
+	Contribute to documentation for Sprint 2.
+	Ongoing
+	
+
+Section 5: Notes & Flexibility
+• The team follows an agile, adaptive workflow, allowing flexibility to expand individual understanding of the MVP and redistribute tasks as needed.
+• Focus remains on local refinement until the AI/API integration is stable, followed by AWS deployment for testing and validation.
+• Documentation and screenshots from local runs, terminal outputs, and front-end development will serve as verification artifacts.

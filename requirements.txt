@@ -1,0 +1,21 @@
+# AI/ER Capstone Project - Python Dependencies
+# Local LLM Server Requirements
+#
+# This file contains all Python dependencies for the AI/ER local LLM server.
+# Designed for cybersecurity students learning secure application development.
+
+# Flask web framework for the local server
+Flask==2.3.3
+
+# CORS support for web development
+Flask-CORS==4.0.0
+
+# Additional utilities (if needed in future)
+# requests==2.31.0      # For API calls
+# python-dotenv==1.0.0  # Environment variable management
+# pyjwt==2.8.0         # JSON Web Tokens for authentication
+# cryptography==41.0.4 # Cryptographic functions
+# bleach==6.0.0        # HTML sanitization
+
+# Note: Core dependencies only for Sprint 2
+# Additional security and monitoring libraries can be added in future sprints

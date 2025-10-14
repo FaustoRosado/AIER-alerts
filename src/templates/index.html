@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI/ER - Local LLM Emergency Response System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1 class="logo">AI/ER</h1>
+                    <span class="tagline">AI Emergency Response</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span class="status-text" id="statusText">Initializing...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Context Panel -->
+            <div class="context-panel">
+                <h2>Emergency Context</h2>
+                <div class="context-inputs">
+                    <div class="input-group">
+                        <label for="scenarioSelect">Scenario Type:</label>
+                        <select id="scenarioSelect" class="context-select">
+                            <option value="">Select Scenario...</option>
+                            <option value="cybersecurity">Cybersecurity Incident</option>
+                            <option value="medical">Medical Emergency</option>
+                            <option value="technical">Technical Failure</option>
+                            <option value="security">Physical Security</option>
+                            <option value="custom">Custom Scenario</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="urgencyLevel">Urgency Level:</label>
+                        <div class="urgency-buttons">
+                            <button class="urgency-btn" data-level="low">Low</button>
+                            <button class="urgency-btn" data-level="medium">Medium</button>
+                            <button class="urgency-btn active" data-level="high">High</button>
+                            <button class="urgency-btn" data-level="critical">Critical</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="contextInput">Additional Context:</label>
+                        <textarea id="contextInput" class="context-textarea" placeholder="Provide specific details about the emergency situation..."></textarea>
+                    </div>
+                </div>
+
+                <div class="context-display">
+                    <h3>Current Context:</h3>
+                    <div id="contextDisplay" class="context-display-text">No context set. Please select a scenario and urgency level.</div>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <h2>Emergency Response Assistant</h2>
+                    <div class="model-info">
+                        <span class="model-name">Local LLM</span>
+                        <span class="model-status" id="modelStatus">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system-message">
+                        <div class="message-content">
+                            <strong>Welcome to AI/ER - Local LLM Emergency Response System</strong><br>
+                            This system runs entirely on your local machine for maximum security and privacy.
+                            Describe your emergency situation, and I'll provide guidance based on cybersecurity best practices.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-container">
+                        <textarea id="promptInput" class="prompt-input" placeholder="Describe the emergency situation or ask a question..." rows="3"></textarea>
+                        <button id="sendButton" class="send-button" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="input-controls">
+                        <button id="clearButton" class="control-button">Clear Chat</button>
+                        <button id="resetContextButton" class="control-button">Reset Context</button>
+                        <div class="token-counter">
+                            <span id="tokenCount">0</span> tokens
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Generating response...</div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p><strong>AI/ER Capstone Project - Sprint 2</strong></p>
+                    <p>Local LLM implementation demonstrating cybersecurity best practices</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Documentation</a>
+                    <a href="#" class="footer-link">Security Guidelines</a>
+                    <a href="#" class="footer-link">About</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
