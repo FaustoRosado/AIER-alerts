@@ -1265,7 +1265,295 @@ By completing this sprint, students will understand:
 
 ---
 
-## 🔗 Resources
+## Complete Setup Guide for macOS
+
+### Prerequisites and System Requirements
+
+**Tested Hardware**: Apple M4 Pro with macOS Sonoma 14.x
+**Required Software**: Python 3.11+, Git, CMake, Homebrew
+**Estimated Setup Time**: 15-25 minutes
+
+### Step-by-Step Setup Instructions
+
+#### 1. Clone and Prepare Repository
+
+```bash
+# Navigate to development directory
+cd ~/Projects
+
+# Clone repository
+git clone https://github.com/FaustoRosado/AIER-alerts.git
+cd AIER-alerts
+
+# Switch to implementation branch
+git checkout tech-architecture
+
+# Verify branch
+git branch --show-current
+# Expected: tech-architecture
+```
+
+#### 2. Install Dependencies
+
+**Homebrew Installation** (if needed):
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+**Required Packages**:
+```bash
+brew install python@3.12 cmake git wget curl
+```
+
+#### 3. Set Up Python Environment
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate environment
+source venv/bin/activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Verify installation
+python3 -c "import flask, flask_cors; print('Dependencies installed successfully')"
+```
+
+#### 4. Build llama.cpp
+
+```bash
+# Clone llama.cpp (if not present)
+git clone https://github.com/ggerganov/llama.cpp.git
+
+# Build with Apple Silicon optimizations
+cd llama.cpp
+mkdir -p build
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+# Verify build
+ls -la build/bin/llama-cli
+```
+
+#### 5. Create Demo Assets
+
+```bash
+# Run demo simulation
+./scripts/mac/deploy-demo.sh
+
+# Verify demo assets
+ls -la demo-assets/
+```
+
+### Verification Checklist
+
+- [x] Repository cloned to `tech-architecture` branch
+- [x] Python virtual environment created and activated
+- [x] Flask and Flask-CORS installed successfully
+- [x] llama.cpp built for Apple Silicon
+- [x] Demo assets created in `demo-assets/` directory
+- [x] Integration tests pass (`./scripts/mac/test-integration.sh run`)
+
+### Access Points After Setup
+
+| Interface | URL | Purpose |
+|-----------|-----|---------|
+| **Web Interface** | http://localhost:5000 | Main application interface |
+| **Demo Interface** | http://localhost:5000/demo.html | Interactive demonstration |
+| **Health Check** | http://localhost:5000/health | System health monitoring |
+| **API Endpoint** | http://localhost:5000/api/generate | LLM API access |
+
+### Troubleshooting
+
+**Common Issues**:
+1. **Port 5000 in use**: `export SERVER_PORT=5001` before starting server
+2. **Permission errors**: `chmod +x scripts/mac/*.sh`
+3. **CMake build fails**: Clean build directory and retry
+4. **Python environment**: Recreate venv if activation fails
+
+**Debug Commands**:
+```bash
+# Check Python environment
+which python3 && python3 --version
+
+# Test Flask installation
+python3 -c "import flask; print('Flask ready')"
+
+# Verify llama.cpp build
+./llama.cpp/build/bin/llama-cli --help | head -3
+
+# Check server status
+curl http://localhost:5000/health
+```
+
+---
+
+## Team Contributions and Recognition
+
+### Sprint 2 Development Team
+
+**AI/ER Team** - Cybersecurity Capstone Project
+
+| Team Member | Primary Contributions | Technical Expertise |
+|-------------|---------------------|-------------------|
+| **Shay** | Project Lead & Documentation Architect | Full-stack development, Technical writing, System integration |
+| **Javier** | Security Specialist & Documentation | Cybersecurity analysis, Secure coding practices, Compliance |
+| **Cuong** | Infrastructure & DevOps Engineer | Terraform, AWS architecture, CI/CD pipelines |
+| **Crystal** | AI/ML Integration Specialist | Model optimization, Performance analysis, Integration testing |
+| **Fausto** | Systems Architecture Lead | Git workflows, Cloud integration, System design |
+
+### Individual Achievements
+
+#### Shay - Project Leadership
+- **Technical Leadership**: Directed overall project architecture and implementation strategy
+- **Documentation Excellence**: Created comprehensive guides for replication and learning
+- **Integration Management**: Successfully deployed local LLM server with HTML front-end
+- **Educational Focus**: Ensured all implementations serve cybersecurity learning objectives
+
+#### Javier - Security Implementation
+- **Security Architecture**: Implemented defense-in-depth security controls throughout
+- **Code Review**: Enhanced security practices in all application components
+- **Documentation**: Created security guidelines and compliance documentation
+- **Risk Assessment**: Identified and mitigated potential security vulnerabilities
+
+#### Cuong - Infrastructure Excellence
+- **IaC Implementation**: Built modular Terraform configuration for AWS deployment
+- **DevOps Pipeline**: Created GitHub Actions workflow with automated validation
+- **Cloud Architecture**: Designed secure multi-tier network architecture
+- **Deployment Automation**: Automated EC2 instance configuration and management
+
+#### Crystal - AI/ML Integration
+- **Model Optimization**: Analyzed and optimized llama.cpp performance
+- **Integration Testing**: Validated end-to-end system functionality
+- **Performance Monitoring**: Implemented monitoring for model inference
+- **User Experience**: Enhanced front-end interface for better interaction
+
+#### Fausto - Systems Architecture
+- **Repository Management**: Maintained organized Git workflow and branch strategy
+- **System Integration**: Coordinated integration between local and cloud components
+- **Architecture Design**: Designed scalable and maintainable system architecture
+- **Team Coordination**: Facilitated collaboration across all technical domains
+
+### Recognition and Impact
+
+**Collective Achievement**: The team successfully delivered a production-ready, education-focused implementation demonstrating:
+
+- **Security-First Design**: Every component built with cybersecurity principles
+- **Educational Value**: Comprehensive learning platform for cybersecurity students
+- **Professional Standards**: Industry-grade documentation and implementation practices
+- **Replicability**: Clear setup guides ensuring other teams can replicate success
+- **Innovation**: Local LLM deployment showcasing privacy-preserving AI
+
+**Professional Development**: Each team member gained hands-on experience in:
+- **DevSecOps Practices**: Security integrated into development lifecycle
+- **Infrastructure as Code**: Modern cloud infrastructure management
+- **AI Security**: Privacy and security considerations for machine learning
+- **Team Collaboration**: Cross-functional teamwork in technical implementation
+- **Documentation Excellence**: Professional technical writing and communication
+
+---
+
+## Forward Guidance and Next Steps
+
+### Immediate Next Steps (Post-Demo)
+
+#### 1. Production Readiness Assessment
+- **Security Audit**: Conduct comprehensive security review of all components
+- **Performance Testing**: Load testing with realistic emergency scenarios
+- **Scalability Analysis**: Assess system performance under increased load
+- **Compliance Verification**: Ensure adherence to relevant security standards
+
+#### 2. Documentation Enhancement
+- **User Guides**: Create end-user documentation for emergency responders
+- **API Documentation**: Complete OpenAPI specification for all endpoints
+- **Deployment Guides**: AWS deployment documentation for production environments
+- **Training Materials**: Educational modules for cybersecurity students
+
+#### 3. Feature Enhancements
+- **Model Fine-tuning**: Custom training data for emergency response scenarios
+- **Multi-language Support**: Interface localization for international deployment
+- **Advanced Monitoring**: Enhanced observability and alerting capabilities
+- **Offline Mode**: Ensure full functionality without internet connectivity
+
+### Sprint 3 Planning
+
+#### Infrastructure Scaling
+- **Auto-scaling Implementation**: Dynamic resource allocation based on demand
+- **Multi-region Deployment**: Disaster recovery across AWS regions
+- **CDN Integration**: Global content delivery for web interface
+- **Database Integration**: Persistent storage for emergency response data
+
+#### Advanced Security Features
+- **Zero-Knowledge Architecture**: Enhanced privacy-preserving techniques
+- **Blockchain Integration**: Immutable audit trails for compliance
+- **Advanced Threat Detection**: Machine learning-based anomaly detection
+- **Regulatory Compliance**: HIPAA, SOC2, and industry-specific certifications
+
+#### AI/ML Enhancements
+- **Custom Model Training**: Domain-specific fine-tuning for emergency scenarios
+- **Multi-modal Processing**: Integration of text, voice, and image inputs
+- **Federated Learning**: Privacy-preserving model updates across deployments
+- **Model Explainability**: Enhanced transparency for AI decision-making
+
+### Long-term Vision
+
+#### Educational Platform Expansion
+- **Learning Management System**: Integration with educational platforms
+- **Interactive Labs**: Hands-on cybersecurity exercises and simulations
+- **Certification Pathways**: Industry-recognized certification preparation
+- **Research Collaboration**: Academic partnerships for ongoing development
+
+#### Industry Applications
+- **Emergency Services Integration**: Real-world deployment for first responders
+- **Corporate Security**: Enterprise security incident response systems
+- **Healthcare Security**: Medical emergency response with privacy compliance
+- **Government Applications**: Public sector emergency management systems
+
+### Success Metrics and Measurement
+
+#### Technical Success Indicators
+- **System Uptime**: 99.9% availability target for production deployment
+- **Response Time**: Sub-second API response times for emergency scenarios
+- **Security Incidents**: Zero security breaches in production environment
+- **User Adoption**: Successful deployment across educational institutions
+
+#### Educational Impact Metrics
+- **Student Learning Outcomes**: Improved understanding of DevSecOps practices
+- **Course Integration**: Successful adoption in cybersecurity curricula
+- **Industry Recognition**: Presentations at security conferences and publications
+- **Community Contributions**: Open-source contributions and knowledge sharing
+
+### Maintenance and Support
+
+#### Ongoing Responsibilities
+- **Security Updates**: Regular dependency updates and security patches
+- **Performance Monitoring**: Continuous optimization and capacity planning
+- **Documentation Updates**: Maintain current and accurate technical documentation
+- **Community Support**: Respond to issues and questions from users and contributors
+
+#### Support Channels
+- **GitHub Issues**: Bug reports and feature requests
+- **Documentation**: Comprehensive guides in repository
+- **Team Contacts**: Individual team member expertise areas
+- **Educational Resources**: Learning materials and tutorials
+
+### Call to Action
+
+This Sprint 2 implementation represents a solid foundation for advanced cybersecurity education and practical DevSecOps experience. The team encourages:
+
+1. **Replication**: Other educational institutions and teams to adopt and adapt this implementation
+2. **Contribution**: Open-source community involvement for ongoing improvement
+3. **Research**: Academic research building upon this secure AI deployment framework
+4. **Innovation**: Further development of privacy-preserving AI technologies
+
+**Project Status**: Production-ready foundation with comprehensive documentation and clear path forward for Sprint 3 and beyond.
+
+---
+
+## Resources
 
 - [llama.cpp Documentation](https://github.com/ggerganov/llama.cpp)
 - [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/)
@@ -1274,7 +1562,315 @@ By completing this sprint, students will understand:
 
 ---
 
-## 📞 Support
+## Support
+
+For questions about this implementation, please refer to:
+- Project documentation in `/docs`
+- Team member contributions in `/team`
+- Security guidelines in `/security`
+
+**Remember**: This is a learning environment. Focus on understanding the "why" behind each security decision, not just the implementation details.
+
+---
+
+## Complete Setup Guide for macOS
+
+### Prerequisites and System Requirements
+
+**Tested Hardware**: Apple M4 Pro with macOS Sonoma 14.x
+**Required Software**: Python 3.11+, Git, CMake, Homebrew
+**Estimated Setup Time**: 15-25 minutes
+
+### Step-by-Step Setup Instructions
+
+#### 1. Clone and Prepare Repository
+
+```bash
+# Navigate to development directory
+cd ~/Projects
+
+# Clone repository
+git clone https://github.com/FaustoRosado/AIER-alerts.git
+cd AIER-alerts
+
+# Switch to implementation branch
+git checkout tech-architecture
+
+# Verify branch
+git branch --show-current
+# Expected: tech-architecture
+```
+
+#### 2. Install Dependencies
+
+**Homebrew Installation** (if needed):
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+**Required Packages**:
+```bash
+brew install python@3.12 cmake git wget curl
+```
+
+#### 3. Set Up Python Environment
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate environment
+source venv/bin/activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Verify installation
+python3 -c "import flask, flask_cors; print('Dependencies installed successfully')"
+```
+
+#### 4. Build llama.cpp
+
+```bash
+# Clone llama.cpp (if not present)
+git clone https://github.com/ggerganov/llama.cpp.git
+
+# Build with Apple Silicon optimizations
+cd llama.cpp
+mkdir -p build
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+# Verify build
+ls -la build/bin/llama-cli
+```
+
+#### 5. Create Demo Assets
+
+```bash
+# Run demo simulation
+./scripts/mac/deploy-demo.sh
+
+# Verify demo assets
+ls -la demo-assets/
+```
+
+### Verification Checklist
+
+- [x] Repository cloned to `tech-architecture` branch
+- [x] Python virtual environment created and activated
+- [x] Flask and Flask-CORS installed successfully
+- [x] llama.cpp built for Apple Silicon
+- [x] Demo assets created in `demo-assets/` directory
+- [x] Integration tests pass (`./scripts/mac/test-integration.sh run`)
+
+### Access Points After Setup
+
+| Interface | URL | Purpose |
+|-----------|-----|---------|
+| **Web Interface** | http://localhost:5000 | Main application interface |
+| **Demo Interface** | http://localhost:5000/demo.html | Interactive demonstration |
+| **Health Check** | http://localhost:5000/health | System health monitoring |
+| **API Endpoint** | http://localhost:5000/api/generate | LLM API access |
+
+### Troubleshooting
+
+**Common Issues**:
+1. **Port 5000 in use**: `export SERVER_PORT=5001` before starting server
+2. **Permission errors**: `chmod +x scripts/mac/*.sh`
+3. **CMake build fails**: Clean build directory and retry
+4. **Python environment**: Recreate venv if activation fails
+
+**Debug Commands**:
+```bash
+# Check Python environment
+which python3 && python3 --version
+
+# Test Flask installation
+python3 -c "import flask; print('Flask ready')"
+
+# Verify llama.cpp build
+./llama.cpp/build/bin/llama-cli --help | head -3
+
+# Check server status
+curl http://localhost:5000/health
+```
+
+---
+
+## Team Contributions and Recognition
+
+### Sprint 2 Development Team
+
+**AI/ER Team** - Cybersecurity Capstone Project
+
+| Team Member | Primary Contributions | Technical Expertise |
+|-------------|---------------------|-------------------|
+| **Shay** | Project Lead & Documentation Architect | Full-stack development, Technical writing, System integration |
+| **Javier** | Security Specialist & Documentation | Cybersecurity analysis, Secure coding practices, Compliance |
+| **Cuong** | Infrastructure & DevOps Engineer | Terraform, AWS architecture, CI/CD pipelines |
+| **Crystal** | AI/ML Integration Specialist | Model optimization, Performance analysis, Integration testing |
+| **Fausto** | Systems Architecture Lead | Git workflows, Cloud integration, System design |
+
+### Individual Achievements
+
+#### Shay - Project Leadership
+- **Technical Leadership**: Directed overall project architecture and implementation strategy
+- **Documentation Excellence**: Created comprehensive guides for replication and learning
+- **Integration Management**: Successfully deployed local LLM server with HTML front-end
+- **Educational Focus**: Ensured all implementations serve cybersecurity learning objectives
+
+#### Javier - Security Implementation
+- **Security Architecture**: Implemented defense-in-depth security controls throughout
+- **Code Review**: Enhanced security practices in all application components
+- **Documentation**: Created security guidelines and compliance documentation
+- **Risk Assessment**: Identified and mitigated potential security vulnerabilities
+
+#### Cuong - Infrastructure Excellence
+- **IaC Implementation**: Built modular Terraform configuration for AWS deployment
+- **DevOps Pipeline**: Created GitHub Actions workflow with automated validation
+- **Cloud Architecture**: Designed secure multi-tier network architecture
+- **Deployment Automation**: Automated EC2 instance configuration and management
+
+#### Crystal - AI/ML Integration
+- **Model Optimization**: Analyzed and optimized llama.cpp performance
+- **Integration Testing**: Validated end-to-end system functionality
+- **Performance Monitoring**: Implemented monitoring for model inference
+- **User Experience**: Enhanced front-end interface for better interaction
+
+#### Fausto - Systems Architecture
+- **Repository Management**: Maintained organized Git workflow and branch strategy
+- **System Integration**: Coordinated integration between local and cloud components
+- **Architecture Design**: Designed scalable and maintainable system architecture
+- **Team Coordination**: Facilitated collaboration across all technical domains
+
+### Recognition and Impact
+
+**Collective Achievement**: The team successfully delivered a production-ready, education-focused implementation demonstrating:
+
+- **Security-First Design**: Every component built with cybersecurity principles
+- **Educational Value**: Comprehensive learning platform for cybersecurity students
+- **Professional Standards**: Industry-grade documentation and implementation practices
+- **Replicability**: Clear setup guides ensuring other teams can replicate success
+- **Innovation**: Local LLM deployment showcasing privacy-preserving AI
+
+**Professional Development**: Each team member gained hands-on experience in:
+- **DevSecOps Practices**: Security integrated into development lifecycle
+- **Infrastructure as Code**: Modern cloud infrastructure management
+- **AI Security**: Privacy and security considerations for machine learning
+- **Team Collaboration**: Cross-functional teamwork in technical implementation
+- **Documentation Excellence**: Professional technical writing and communication
+
+---
+
+## Forward Guidance and Next Steps
+
+### Immediate Next Steps (Post-Demo)
+
+#### 1. Production Readiness Assessment
+- **Security Audit**: Conduct comprehensive security review of all components
+- **Performance Testing**: Load testing with realistic emergency scenarios
+- **Scalability Analysis**: Assess system performance under increased load
+- **Compliance Verification**: Ensure adherence to relevant security standards
+
+#### 2. Documentation Enhancement
+- **User Guides**: Create end-user documentation for emergency responders
+- **API Documentation**: Complete OpenAPI specification for all endpoints
+- **Deployment Guides**: AWS deployment documentation for production environments
+- **Training Materials**: Educational modules for cybersecurity students
+
+#### 3. Feature Enhancements
+- **Model Fine-tuning**: Custom training data for emergency response scenarios
+- **Multi-language Support**: Interface localization for international deployment
+- **Advanced Monitoring**: Enhanced observability and alerting capabilities
+- **Offline Mode**: Ensure full functionality without internet connectivity
+
+### Sprint 3 Planning
+
+#### Infrastructure Scaling
+- **Auto-scaling Implementation**: Dynamic resource allocation based on demand
+- **Multi-region Deployment**: Disaster recovery across AWS regions
+- **CDN Integration**: Global content delivery for web interface
+- **Database Integration**: Persistent storage for emergency response data
+
+#### Advanced Security Features
+- **Zero-Knowledge Architecture**: Enhanced privacy-preserving techniques
+- **Blockchain Integration**: Immutable audit trails for compliance
+- **Advanced Threat Detection**: Machine learning-based anomaly detection
+- **Regulatory Compliance**: HIPAA, SOC2, and industry-specific certifications
+
+#### AI/ML Enhancements
+- **Custom Model Training**: Domain-specific fine-tuning for emergency scenarios
+- **Multi-modal Processing**: Integration of text, voice, and image inputs
+- **Federated Learning**: Privacy-preserving model updates across deployments
+- **Model Explainability**: Enhanced transparency for AI decision-making
+
+### Long-term Vision
+
+#### Educational Platform Expansion
+- **Learning Management System**: Integration with educational platforms
+- **Interactive Labs**: Hands-on cybersecurity exercises and simulations
+- **Certification Pathways**: Industry-recognized certification preparation
+- **Research Collaboration**: Academic partnerships for ongoing development
+
+#### Industry Applications
+- **Emergency Services Integration**: Real-world deployment for first responders
+- **Corporate Security**: Enterprise security incident response systems
+- **Healthcare Security**: Medical emergency response with privacy compliance
+- **Government Applications**: Public sector emergency management systems
+
+### Success Metrics and Measurement
+
+#### Technical Success Indicators
+- **System Uptime**: 99.9% availability target for production deployment
+- **Response Time**: Sub-second API response times for emergency scenarios
+- **Security Incidents**: Zero security breaches in production environment
+- **User Adoption**: Successful deployment across educational institutions
+
+#### Educational Impact Metrics
+- **Student Learning Outcomes**: Improved understanding of DevSecOps practices
+- **Course Integration**: Successful adoption in cybersecurity curricula
+- **Industry Recognition**: Presentations at security conferences and publications
+- **Community Contributions**: Open-source contributions and knowledge sharing
+
+### Maintenance and Support
+
+#### Ongoing Responsibilities
+- **Security Updates**: Regular dependency updates and security patches
+- **Performance Monitoring**: Continuous optimization and capacity planning
+- **Documentation Updates**: Maintain current and accurate technical documentation
+- **Community Support**: Respond to issues and questions from users and contributors
+
+#### Support Channels
+- **GitHub Issues**: Bug reports and feature requests
+- **Documentation**: Comprehensive guides in repository
+- **Team Contacts**: Individual team member expertise areas
+- **Educational Resources**: Learning materials and tutorials
+
+### Call to Action
+
+This Sprint 2 implementation represents a solid foundation for advanced cybersecurity education and practical DevSecOps experience. The team encourages:
+
+1. **Replication**: Other educational institutions and teams to adopt and adapt this implementation
+2. **Contribution**: Open-source community involvement for ongoing improvement
+3. **Research**: Academic research building upon this secure AI deployment framework
+4. **Innovation**: Further development of privacy-preserving AI technologies
+
+**Project Status**: Production-ready foundation with comprehensive documentation and clear path forward for Sprint 3 and beyond.
+
+---
+
+## Resources
+
+- [llama.cpp Documentation](https://github.com/ggerganov/llama.cpp)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+
+---
+
+## Support
 
 For questions about this implementation, please refer to:
 - Project documentation in `/docs`
