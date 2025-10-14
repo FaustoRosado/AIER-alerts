@@ -7,7 +7,7 @@
 **Sprint**: 2 - Technical Architecture & Local LLM Implementation
 **Date**: October 2025
 **Environment**: Sandbox/Development
-**AWS Account**: 006291942454 (aws-lab-user)
+**AWS Testing**: Infrastructure validated with real AWS provider
 
 ---
 
@@ -159,7 +159,7 @@ terraform plan \
 
 ### Pre-Deployment Checklist
 
-- [x] **AWS Credentials**: Verified and accessible (Account: 006291942454)
+- [x] **AWS Credentials**: Verified and accessible
 - [x] **Terraform Configuration**: Validated and syntax-checked
 - [x] **Provider Compatibility**: AWS provider 5.x installed and tested
 - [x] **Network Design**: Multi-tier architecture with proper isolation
