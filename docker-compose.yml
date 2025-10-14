@@ -1,0 +1,63 @@
+# AI/ER Capstone Project - Docker Compose Configuration
+# Sprint 2: Containerized Deployment for Demonstration
+#
+# This docker-compose.yml file provides an easy way to run the AI/ER system
+# in a containerized environment for demonstrations and development
+
+version: '3.8'
+
+services:
+  # Main AI/ER application container
+  aier-app:
+    build: .
+    container_name: aier-capstone-app
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount logs for persistence
+      - ./logs:/app/logs
+      # Mount models directory for custom models
+      - ./models:/app/models:ro
+    environment:
+      - FLASK_ENV=production
+      - LOG_LEVEL=INFO
+      - MODEL_PATH=/app/models/llama-7b-q4_0.gguf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis for caching (if needed in future)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: aier-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   command: redis-server --appendonly yes
+  #   restart: unless-stopped
+
+  # Optional: Monitoring container (if needed in future)
+  # monitoring:
+  #   image: prom/prometheus:latest
+  #   container_name: aier-monitoring
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   restart: unless-stopped
+
+# Named volumes for data persistence
+volumes:
+  # redis-data:
+  #   driver: local
+
+# Networks configuration
+networks:
+  default:
+    name: aier-capstone-network
+    driver: bridge

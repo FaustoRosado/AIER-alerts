@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI/ER - Local LLM Emergency Response System (Demo Mode)</title>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2c5282;
+            --accent-color: #3182ce;
+            --success-color: #38a169;
+            --warning-color: #d69e2e;
+            --danger-color: #e53e3e;
+            --background-color: #f7fafc;
+            --surface-color: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .demo-banner {
+            background: linear-gradient(135deg, var(--warning-color), var(--danger-color));
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero .subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .demo-button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 0.5rem;
+        }
+
+        .demo-button:hover {
+            background: var(--secondary-color);
+        }
+
+        .demo-button.secondary {
+            background: transparent;
+            border: 2px solid white;
+        }
+
+        .demo-button.secondary:hover {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card .icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .architecture-diagram {
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin: 3rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .architecture-diagram h3 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .ascii-diagram {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            white-space: pre-line;
+            line-height: 1.4;
+            font-size: 0.9rem;
+        }
+
+        .security-highlights {
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin: 3rem 0;
+        }
+
+        .security-highlights h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .highlight-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .highlight-item {
+            background: rgba(255,255,255,0.8);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .demo-simulation {
+            background: var(--surface-color);
+            border: 2px dashed var(--accent-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 3rem 0;
+            text-align: center;
+        }
+
+        .demo-simulation h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .simulation-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .sim-button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .sim-button:hover {
+            background: var(--secondary-color);
+        }
+
+        .mock-interface {
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        .mock-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .mock-chat {
+            height: 300px;
+            background: var(--background-color);
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .mock-message {
+            margin: 1rem 0;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            max-width: 80%;
+        }
+
+        .mock-message.user {
+            background: var(--accent-color);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .mock-message.assistant {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .mock-input {
+            padding: 1rem;
+            background: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .mock-input input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .educational-notes {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin: 3rem 0;
+        }
+
+        .educational-notes h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .note-card {
+            background: rgba(255,255,255,0.8);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .note-card h4 {
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .deployment-info {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 3rem 0;
+        }
+
+        .deployment-info h3 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .info-section h4 {
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+        }
+
+        .code-snippet {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 3rem 0;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .features-grid,
+            .highlight-list,
+            .notes-grid,
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .simulation-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        🎭 DEMO MODE - This is a simulation for educational purposes
+    </div>
+
+    <div class="container">
+        <div class="hero">
+            <h1>AI/ER Capstone Project</h1>
+            <div class="subtitle">Local LLM Emergency Response System</div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>System Operational (Demo Mode)</span>
+            </div>
+            <div>
+                <button class="demo-button" onclick="startDemo()">🚀 Start Interactive Demo</button>
+                <button class="demo-button secondary" onclick="showArchitecture()">🏗️ View Architecture</button>
+                <button class="demo-button secondary" onclick="showSecurity()">🔒 Security Features</button>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="icon">🏗️</div>
+                <h3>Infrastructure as Code</h3>
+                <p>Complete Terraform configuration for secure AWS deployment with VPC isolation, security groups, and automated provisioning.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">🤖</div>
+                <h3>Local LLM Integration</h3>
+                <p>llama.cpp integration with secure Flask API server, featuring input validation, logging, and privacy-preserving AI deployment.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">🔒</div>
+                <h3>Security-First Design</h3>
+                <p>Defense in depth with network isolation, access controls, encryption, comprehensive audit trails, and compliance-ready architecture.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">🚀</div>
+                <h3>DevSecOps Pipeline</h3>
+                <p>GitHub Actions workflow with automated validation, security scanning, manual approval gates, and deployment automation.</p>
+            </div>
+        </div>
+
+        <div class="demo-simulation" id="demoSection" style="display: none;">
+            <h3>🎭 Interactive Demo Interface</h3>
+            <p>This simulation shows what the actual interface looks like when running with llama.cpp backend.</p>
+
+            <div class="mock-interface">
+                <div class="mock-header">
+                    <h4>AI/ER Emergency Response Assistant</h4>
+                </div>
+                <div class="mock-chat" id="mockChat">
+                    <div class="mock-message assistant">
+                        <strong>Welcome to AI/ER - Local LLM Emergency Response System</strong><br>
+                        This system runs entirely on your local machine for maximum security and privacy.
+                        Describe your emergency situation, and I'll provide guidance based on cybersecurity best practices.
+                    </div>
+                </div>
+                <div class="mock-input">
+                    <input type="text" id="demoInput" placeholder="Describe the emergency situation or ask a question..." onkeydown="handleDemoInput(event)">
+                </div>
+            </div>
+
+            <div class="simulation-controls">
+                <button class="sim-button" onclick="simulateEmergencyResponse()">🚨 Simulate Emergency Response</button>
+                <button class="sim-button" onclick="simulateSecurityIncident()">🔒 Simulate Security Incident</button>
+                <button class="sim-button" onclick="simulateSystemFailure()">💻 Simulate System Failure</button>
+                <button class="sim-button" onclick="clearDemoChat()">🧹 Clear Chat</button>
+            </div>
+        </div>
+
+        <div class="architecture-diagram" id="architectureSection" style="display: none;">
+            <h3>🏗️ System Architecture</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│                    Internet Gateway (IGW)                       │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────────┐
+│                    Public Subnet (10.0.1.0/24)                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              NAT Gateway + Elastic IP                   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│  │                                                           │    │
+│  │  ┌─────────────────────────────────────────────────────┐  │    │
+│  │  │            Bastion Host (t3.micro)                  │  │    │
+│  │  │  • SSH Access (Key-based auth only)                 │  │    │
+│  │  │  • Security monitoring & logging                   │  │    │
+│  │  │  • Connection proxy to private resources           │  │    │
+│  │  └─────────────────────────────────────────────────────┘  │    │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────────┘
+│                    Private Subnet (10.0.101.0/24)               │
+│  │                                                           │    │
+│  │  ┌─────────────────────────────────────────────────────┐  │    │
+│  │  │           LLM Server (t3.medium)                    │  │    │
+│  │  │  • Local Llama.cpp model inference                  │  │    │
+│  │  │  • Flask API server (port 5000)                     │  │    │
+│  │  │  • Model: llama-7b-q4_0.gguf                        │  │    │
+│  │  │  • Security: Input validation, logging              │  │    │
+│  │  └─────────────────────────────────────────────────────┘  │    │
+└─────────────────────────────────────────────────────────────────┘
+            </div>
+        </div>
+
+        <div class="security-highlights" id="securitySection" style="display: none;">
+            <h3>🔒 Security Implementation Highlights</h3>
+            <div class="highlight-list">
+                <div class="highlight-item">
+                    <strong>Network Isolation</strong><br>
+                    Private subnets with no direct internet access
+                </div>
+                <div class="highlight-item">
+                    <strong>Access Controls</strong><br>
+                    SSH key authentication and principle of least privilege
+                </div>
+                <div class="highlight-item">
+                    <strong>Input Validation</strong><br>
+                    Comprehensive sanitization and XSS protection
+                </div>
+                <div class="highlight-item">
+                    <strong>Audit Trails</strong><br>
+                    Complete logging of all requests and responses
+                </div>
+                <div class="highlight-item">
+                    <strong>Encryption</strong><br>
+                    TLS for data in transit, encryption at rest
+                </div>
+                <div class="highlight-item">
+                    <strong>Monitoring</strong><br>
+                    Real-time security event detection and alerting
+                </div>
+            </div>
+        </div>
+
+        <div class="educational-notes">
+            <h3>🎓 Educational Value for Cybersecurity Students</h3>
+            <div class="notes-grid">
+                <div class="note-card">
+                    <h4>Infrastructure as Code</h4>
+                    <p>Learn Terraform for repeatable, auditable infrastructure deployment with security best practices built-in.</p>
+                </div>
+                <div class="note-card">
+                    <h4>DevSecOps Practices</h4>
+                    <p>Understand how to integrate security into CI/CD pipelines with automated validation and approval gates.</p>
+                </div>
+                <div class="note-card">
+                    <h4>Local AI Security</h4>
+                    <p>Explore the privacy and security implications of running language models locally vs. cloud APIs.</p>
+                </div>
+                <div class="note-card">
+                    <h4>Defense in Depth</h4>
+                    <p>Implement multiple layers of security from network isolation to application-level controls.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="deployment-info">
+            <h3>📋 Implementation Status</h3>
+            <div class="info-grid">
+                <div class="info-section">
+                    <h4>✅ Completed Features</h4>
+                    <ul>
+                        <li>Local LLM integration with llama.cpp</li>
+                        <li>Secure Flask API server with validation</li>
+                        <li>Professional HTML/CSS/JavaScript interface</li>
+                        <li>Modular Terraform infrastructure</li>
+                        <li>GitHub Actions CI/CD pipeline</li>
+                        <li>Comprehensive security controls</li>
+                        <li>Interactive demo simulation</li>
+                    </ul>
+                </div>
+                <div class="info-section">
+                    <h4>🚀 Ready for Demo</h4>
+                    <div class="code-snippet">
+# Quick start commands:
+./scripts/mac/setup-local.sh    # Setup environment
+./scripts/mac/run-local.sh     # Start server
+./scripts/mac/deploy-demo.sh   # Create demo assets
+./demo-assets/run-demo.sh      # Interactive demo
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>AI/ER Capstone Project - Sprint 2</strong></p>
+        <p>Local LLM implementation demonstrating cybersecurity best practices</p>
+        <p>Built for educational purposes • No real infrastructure required for demo</p>
+    </div>
+
+    <script>
+        function startDemo() {
+            document.getElementById('demoSection').style.display = 'block';
+            document.getElementById('architectureSection').style.display = 'none';
+            document.getElementById('securitySection').style.display = 'none';
+            document.getElementById('demoSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showArchitecture() {
+            document.getElementById('architectureSection').style.display = 'block';
+            document.getElementById('demoSection').style.display = 'none';
+            document.getElementById('securitySection').style.display = 'none';
+            document.getElementById('architectureSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showSecurity() {
+            document.getElementById('securitySection').style.display = 'block';
+            document.getElementById('demoSection').style.display = 'none';
+            document.getElementById('architectureSection').style.display = 'none';
+            document.getElementById('securitySection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function addMockMessage(type, content) {
+            const chat = document.getElementById('mockChat');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `mock-message ${type}`;
+            messageDiv.innerHTML = content;
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function handleDemoInput(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('demoInput');
+                const userMessage = input.value.trim();
+                if (userMessage) {
+                    addMockMessage('user', userMessage);
+                    input.value = '';
+
+                    // Simulate AI response after delay
+                    setTimeout(() => {
+                        const responses = [
+                            "Based on cybersecurity best practices, I recommend implementing immediate network segmentation and enabling comprehensive logging for audit trails.",
+                            "For this security incident, follow your organization's incident response plan. Key steps include isolating affected systems and preserving evidence for forensic analysis.",
+                            "In emergency situations, prioritize life safety first, then data protection, followed by system recovery. Document all actions taken for compliance purposes.",
+                            "This appears to be a potential security breach. Activate your incident response team and follow established protocols for containment and eradication."
+                        ];
+                        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                        addMockMessage('assistant', randomResponse);
+                    }, 1500);
+                }
+            }
+        }
+
+        function simulateEmergencyResponse() {
+            addMockMessage('user', '🚨 Medical emergency - employee experiencing chest pain and shortness of breath');
+            setTimeout(() => {
+                addMockMessage('assistant', '🚨 MEDICAL EMERGENCY RESPONSE:<br><br>1. Call emergency services immediately (911)<br>2. Begin CPR if person is unresponsive<br>3. Use AED if available and trained<br>4. Document incident for compliance reporting<br>5. Preserve scene for investigation<br><br>This is not medical advice - seek professional medical help immediately.');
+            }, 1000);
+        }
+
+        function simulateSecurityIncident() {
+            addMockMessage('user', '🔒 Security breach detected - unauthorized access to employee database');
+            setTimeout(() => {
+                addMockMessage('assistant', '🔒 SECURITY INCIDENT RESPONSE:<br><br>1. Isolate affected systems immediately<br>2. Preserve evidence and logs<br>3. Notify incident response team<br>4. Assess scope and impact<br>5. Implement containment measures<br>6. Document all actions for compliance<br><br>Follow your organization\'s incident response plan.');
+            }, 1000);
+        }
+
+        function simulateSystemFailure() {
+            addMockMessage('user', '💻 Critical system failure - main application server unresponsive');
+            setTimeout(() => {
+                addMockMessage('assistant', '💻 SYSTEM FAILURE RESPONSE:<br><br>1. Check system logs for error patterns<br>2. Verify network connectivity<br>3. Restart services in proper order<br>4. Check resource utilization<br>5. Fail over to backup systems if needed<br>6. Document downtime for SLA reporting<br><br>Escalate to on-call engineer if needed.');
+            }, 1000);
+        }
+
+        function clearDemoChat() {
+            document.getElementById('mockChat').innerHTML = `
+                <div class="mock-message assistant">
+                    <strong>Welcome to AI/ER - Local LLM Emergency Response System</strong><br>
+                    This system runs entirely on your local machine for maximum security and privacy.
+                    Describe your emergency situation, and I'll provide guidance based on cybersecurity best practices.
+                </div>
+            `;
+        }
+
+        // Auto-start demo after page load
+        window.addEventListener('load', () => {
+            console.log('AI/ER Demo Interface loaded successfully');
+        });
+    </script>
+</body>
+</html>

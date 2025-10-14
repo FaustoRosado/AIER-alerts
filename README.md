@@ -81,11 +81,701 @@ This project serves as a comprehensive learning platform covering:
 | **CI/CD** | GitHub Actions | Automated pipelines |
 | **Cloud** | AWS | Secure hosting environment |
 | **Frontend** | HTML/CSS/JavaScript | User interface |
-| **Version Control** | Git | Code collaboration |
+---
+
+## 🚀 Quick Start Guide
+
+### For Immediate Demonstration
+
+If you want to see the AI/ER system in action immediately without full setup:
+
+```bash
+# 1. Clone and navigate to project
+git clone https://github.com/FaustoRosado/AIER-alerts.git
+cd AIER-alerts
+git checkout tech-architecture
+
+# 2. Run the demo simulation (creates all demo assets)
+./scripts/mac/deploy-demo.sh
+
+# 3. Run the interactive demo
+./demo-assets/run-demo.sh
+
+# 4. For full local development setup
+./scripts/mac/setup-local.sh
+./scripts/mac/run-local.sh
+```
+
+**Demo Features:**
+- ✅ Simulated infrastructure deployment
+- ✅ Sample log files and outputs
+- ✅ Interactive demonstration script
+- ✅ No real AWS resources required
+
+### For Full Local Development
+
+```bash
+# 1. Complete environment setup
+./scripts/mac/setup-local.sh
+
+# 2. Start development server
+./scripts/mac/run-local.sh start
+
+# 3. Run integration tests
+./scripts/mac/test-integration.sh run
+
+# 4. Monitor server (in another terminal)
+./scripts/mac/run-local.sh monitor
+```
+
+**Access Points:**
+- 🌐 **Web Interface**: http://localhost:5000
+- 🔗 **Health Check**: http://localhost:5000/health
+- 📡 **API Endpoint**: http://localhost:5000/api/generate
 
 ---
 
-## 🔧 Local LLM Setup with llama.cpp
+## 💻 Local Development Workflow
+
+### Complete Setup Process
+
+#### Step 1: Environment Setup
+```bash
+# Run the automated setup script
+./scripts/mac/setup-local.sh
+```
+
+This script will:
+- ✅ Check and install dependencies (Python 3, Git, CMake, etc.)
+- ✅ Create Python virtual environment
+- ✅ Install required packages
+- ✅ Clone and build llama.cpp
+- ✅ Create necessary directories and configuration files
+- ✅ Run initial tests
+
+#### Step 2: Development Server Management
+```bash
+# Start the development server
+./scripts/mac/run-local.sh start
+
+# Check server status
+./scripts/mac/run-local.sh status
+
+# Monitor server in real-time
+./scripts/mac/run-local.sh monitor
+
+# Stop the server
+./scripts/mac/run-local.sh stop
+```
+
+#### Step 3: Testing and Validation
+```bash
+# Run comprehensive integration tests
+./scripts/mac/test-integration.sh run
+
+# Check server health
+./scripts/mac/run-local.sh health
+
+# Test specific components
+./scripts/mac/test-integration.sh health
+```
+
+### Development Commands Reference
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `./scripts/mac/setup-local.sh` | Complete environment setup | One-time setup |
+| `./scripts/mac/run-local.sh start` | Start development server | Daily development |
+| `./scripts/mac/run-local.sh status` | Check server status | Debugging |
+| `./scripts/mac/test-integration.sh run` | Run all tests | Validation |
+| `./scripts/mac/deploy-demo.sh` | Create demo assets | Presentations |
+
+### Troubleshooting Common Issues
+
+#### 1. **Python Virtual Environment Issues**
+```bash
+# If virtual environment fails to activate
+rm -rf venv
+./scripts/mac/setup-local.sh
+```
+
+#### 2. **Port Already in Use**
+```bash
+# Check what's using port 5000
+lsof -i :5000
+
+# Kill the process or use different port
+export SERVER_PORT=5001
+./scripts/mac/run-local.sh start
+```
+
+#### 3. **Model Loading Errors**
+```bash
+# Check if llama.cpp was built successfully
+ls -la llama.cpp/build/bin/llama-cli
+
+# Rebuild if necessary
+cd llama.cpp && cmake --build build --config Release
+```
+
+#### 4. **Permission Errors**
+```bash
+# Fix script permissions
+chmod +x scripts/mac/*.sh
+
+# Fix directory permissions
+sudo chown -R $(whoami) .
+```
+
+---
+
+## 🔧 Infrastructure Deployment
+
+### Automated Deployment with Terraform
+
+#### Prerequisites for AWS Deployment
+```bash
+# 1. Install AWS CLI and configure credentials
+brew install awscli
+aws configure
+
+# 2. Install Terraform
+brew install terraform
+
+# 3. Set up SSH key for EC2 access
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/aier-capstone-key
+aws ec2 import-key-pair --key-name "aier-capstone-key" --public-key-material fileb://~/.ssh/aier-capstone-key.pub
+```
+
+#### Deployment Commands
+```bash
+# Navigate to terraform directory
+cd terraform
+
+# Initialize Terraform
+terraform init
+
+# Review planned changes
+terraform plan
+
+# Deploy infrastructure (requires approval)
+terraform apply
+
+# Check deployment status
+terraform show
+
+# View outputs
+terraform output
+```
+
+#### Post-Deployment Access
+```bash
+# Get bastion host IP
+BASTION_IP=$(terraform output -raw bastion_public_ip)
+
+# Connect to LLM server through bastion
+ssh -A -J ec2-user@$BASTION_IP ec2-user@10.0.101.100
+
+# Check server status on remote machine
+curl http://localhost:5000/health
+```
+
+### Cost Management
+
+**Estimated Monthly Costs:**
+- **t3.medium (LLM Server)**: ~$30/month
+- **t3.micro (Bastion Host)**: ~$8/month
+- **NAT Gateway**: ~$32/month (first GB free)
+- **VPC Flow Logs**: ~$5/month
+
+**Cost Optimization Tips:**
+- Use `t3.micro` for bastion host (minimal resource needs)
+- Implement auto-scaling for production workloads
+- Use spot instances for development environments
+- Set up billing alerts in AWS Cost Explorer
+
+### Monitoring and Alerting
+
+#### CloudWatch Setup
+```bash
+# Create log group for application logs
+aws logs create-log-group --log-group-name /aws/llm-server/aier-capstone
+
+# Set up metric filters for security events
+aws logs put-metric-filter \
+  --log-group-name /aws/llm-server/aier-capstone \
+  --filter-name SecurityEvents \
+  --filter-pattern "ERROR || WARN" \
+  --metric-transformations metricName=SecurityEvents,metricNamespace=AIER,metricValue=1
+```
+
+#### Alert Configuration
+```bash
+# CPU utilization alarm
+aws cloudwatch put-metric-alarm \
+  --alarm-name "LLM-Server-High-CPU" \
+  --alarm-description "LLM Server CPU utilization is too high" \
+  --metric-name CPUUtilization \
+  --namespace AWS/EC2 \
+  --statistic Average \
+  --period 300 \
+  --threshold 80 \
+  --comparison-operator GreaterThanThreshold \
+  --dimensions Name=InstanceId,Value=i-1234567890abcdef0
+```
+
+---
+
+## 🎯 Demonstration Guide
+
+### For Instructors and Reviewers
+
+#### Quick Demo (5 minutes)
+```bash
+# 1. Run demo simulation
+./scripts/mac/deploy-demo.sh
+
+# 2. Show demo assets
+ls -la demo-assets/
+
+# 3. Run interactive demo
+./demo-assets/run-demo.sh
+```
+
+#### Technical Deep Dive (15 minutes)
+```bash
+# 1. Show project structure
+tree -a
+
+# 2. Demonstrate local setup
+./scripts/mac/setup-local.sh
+
+# 3. Run integration tests
+./scripts/mac/test-integration.sh run
+
+# 4. Show terraform configuration
+cd terraform && terraform plan
+
+# 5. Demonstrate security features
+grep -r "security" src/ | head -10
+```
+
+#### Architecture Walkthrough (20 minutes)
+1. **Network Architecture**: Explain VPC design and security groups
+2. **Application Architecture**: Show Flask server and llama.cpp integration
+3. **CI/CD Pipeline**: Demonstrate GitHub Actions workflow
+4. **Security Implementation**: Highlight defense in depth strategy
+
+### Demo Checklist for Presentations
+
+- [ ] **Environment Setup**: `./scripts/mac/setup-local.sh` runs successfully
+- [ ] **Server Startup**: `./scripts/mac/run-local.sh start` works
+- [ ] **Integration Tests**: `./scripts/mac/test-integration.sh run` passes
+- [ ] **Web Interface**: http://localhost:5000 loads correctly
+- [ ] **API Functionality**: POST requests to `/api/generate` work
+- [ ] **Security Features**: Input validation and logging demonstrated
+- [ ] **Infrastructure Simulation**: `./scripts/mac/deploy-demo.sh` creates assets
+- [ ] **Documentation**: README.md and guides are comprehensive
+
+### Common Demo Scenarios
+
+#### Scenario 1: Local Development
+```bash
+# Show local development workflow
+./scripts/mac/run-local.sh start
+# Open browser to http://localhost:5000
+# Demonstrate real-time interaction
+./scripts/mac/test-integration.sh run
+```
+
+#### Scenario 2: Infrastructure Deployment
+```bash
+# Show terraform deployment simulation
+cd terraform
+terraform plan  # Show planned infrastructure
+./scripts/mac/deploy-demo.sh  # Create demo evidence
+```
+
+#### Scenario 3: Security Demonstration
+```bash
+# Show security features
+grep -A 10 -B 5 "validate_prompt" src/llm_server/app.py
+# Demonstrate input validation
+curl -X POST http://localhost:5000/api/generate -H "Content-Type: application/json" -d '{"prompt": ""}'
+```
+
+---
+
+## 🧪 Testing Strategy
+
+### Test Categories
+
+#### 1. **Unit Tests**
+```bash
+# Test individual components
+python3 -m pytest src/tests/ -v
+```
+
+#### 2. **Integration Tests**
+```bash
+# Test complete system integration
+./scripts/mac/test-integration.sh run
+```
+
+#### 3. **Security Tests**
+```bash
+# Test security controls
+./scripts/mac/test-integration.sh security
+```
+
+#### 4. **Performance Tests**
+```bash
+# Test system performance
+./scripts/mac/test-integration.sh performance
+```
+
+### Automated Testing Pipeline
+
+The project includes automated testing through:
+
+1. **GitHub Actions**: CI/CD pipeline with automated validation
+2. **Local Scripts**: Comprehensive test suite for development
+3. **Integration Tests**: End-to-end system validation
+4. **Security Scanning**: Automated vulnerability detection
+
+### Test Results and Reporting
+
+All tests generate detailed reports in the `logs/` directory:
+
+- `test-results.log`: Comprehensive test execution logs
+- `coverage-report.html`: Code coverage analysis
+- `security-scan-results.json`: Security vulnerability reports
+- `performance-metrics.json`: System performance data
+
+---
+
+## 🔒 Security Testing
+
+### Automated Security Validation
+
+#### Input Validation Testing
+```bash
+# Test various input scenarios
+./scripts/mac/test-integration.sh input-validation
+
+# Results show:
+# ✅ Empty prompts rejected
+# ✅ Malicious input filtered
+# ✅ XSS attempts blocked
+# ✅ SQL injection prevented
+```
+
+#### Authentication Testing
+```bash
+# Test access controls
+./scripts/mac/test-integration.sh auth
+
+# Results show:
+# ✅ API endpoints protected
+# ✅ Unauthorized access blocked
+# ✅ Session management secure
+```
+
+#### Network Security Testing
+```bash
+# Test network isolation
+./scripts/mac/test-integration.sh network
+
+# Results show:
+# ✅ Private subnets isolated
+# ✅ Security groups restrictive
+# ✅ Flow logs capturing traffic
+```
+
+### Manual Security Testing
+
+#### Penetration Testing Checklist
+- [ ] **Network Scanning**: Nmap scans for open ports
+- [ ] **Vulnerability Assessment**: Nessus/OpenVAS scans
+- [ ] **Web Application Testing**: OWASP ZAP testing
+- [ ] **API Security Testing**: Postman security tests
+- [ ] **Authentication Testing**: Brute force simulation
+
+#### Security Headers Validation
+```bash
+# Check security headers
+curl -I http://localhost:5000/
+
+# Expected headers:
+# X-Content-Type-Options: nosniff
+# X-Frame-Options: DENY
+# X-XSS-Protection: 1; mode=block
+```
+
+---
+
+## 📊 Monitoring and Observability
+
+### Local Development Monitoring
+
+#### Real-time Server Monitoring
+```bash
+# Monitor server in real-time
+./scripts/mac/run-local.sh monitor
+
+# Shows:
+# • Request count and errors
+# • Response times
+# • System resource usage
+# • Error rates
+```
+
+#### Log Analysis
+```bash
+# View recent server logs
+tail -f logs/llm_server.log
+
+# Search for security events
+grep "ERROR\|WARN" logs/llm_server.log
+
+# Analyze API usage patterns
+grep "API request processed" logs/llm_server.log | wc -l
+```
+
+### Infrastructure Monitoring
+
+#### AWS CloudWatch Integration
+```bash
+# Check CloudWatch metrics
+aws cloudwatch list-metrics --namespace AWS/EC2
+
+# View custom application metrics
+aws cloudwatch get-metric-statistics \
+  --metric-name RequestCount \
+  --namespace AIER/Application \
+  --start-time $(date -d '1 hour ago' +%s) \
+  --end-time $(date +%s) \
+  --period 300 \
+  --statistics Sum
+```
+
+#### Log Aggregation
+```bash
+# View VPC Flow Logs
+aws logs tail /aws/vpc/flowlogs/aier-capstone --follow
+
+# Check application logs
+aws logs tail /aws/llm-server/aier-capstone --follow
+```
+
+### Alert Configuration
+
+#### Critical Alerts Setup
+```bash
+# High CPU usage alert
+aws cloudwatch put-metric-alarm \
+  --alarm-name "LLM-Server-High-CPU" \
+  --alarm-description "LLM Server CPU utilization is too high" \
+  --metric-name CPUUtilization \
+  --namespace AWS/EC2 \
+  --statistic Average \
+  --period 300 \
+  --threshold 80 \
+  --comparison-operator GreaterThanThreshold \
+  --evaluation-periods 2 \
+  --alarm-actions arn:aws:sns:us-east-1:123456789012:aier-alerts
+```
+
+---
+
+## 🚨 Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### 1. **Server Won't Start**
+```bash
+# Check if port 5000 is in use
+lsof -i :5000
+
+# Check Python environment
+python3 -c "import flask; print('Flask version:', flask.__version__)"
+
+# Check log file for errors
+tail -20 logs/llm_server.log
+```
+
+#### 2. **Model Loading Errors**
+```bash
+# Verify llama.cpp build
+ls -la llama.cpp/build/bin/llama-cli
+
+# Check model file exists
+ls -la models/
+
+# Rebuild llama.cpp if needed
+cd llama.cpp && cmake --build build --config Release
+```
+
+#### 3. **Permission Errors**
+```bash
+# Fix script permissions
+chmod +x scripts/mac/*.sh
+
+# Fix directory permissions
+sudo chown -R $(whoami) .
+
+# Check if running as correct user
+whoami && id
+```
+
+#### 4. **Network Connectivity Issues**
+```bash
+# Test local connectivity
+curl http://localhost:5000/health
+
+# Check firewall settings
+sudo ufw status
+
+# Test DNS resolution
+nslookup localhost
+```
+
+#### 5. **Memory Issues**
+```bash
+# Check system memory
+free -h
+
+# Monitor process memory usage
+ps aux | grep python
+
+# Adjust model parameters for lower memory usage
+# Edit model configuration to use smaller context window
+```
+
+### Debug Mode
+
+#### Enable Debug Logging
+```bash
+# Set debug level in environment
+export LOG_LEVEL=DEBUG
+
+# Or modify .env file
+echo "LOG_LEVEL=DEBUG" >> .env
+
+# Restart server to apply changes
+./scripts/mac/run-local.sh restart
+```
+
+#### Remote Debugging
+```bash
+# Enable remote debugging (if needed)
+export FLASK_DEBUG=1
+export FLASK_ENV=development
+
+# Start server with debug features
+./scripts/mac/run-local.sh start
+```
+
+### Performance Issues
+
+#### Memory Optimization
+```bash
+# Monitor memory usage
+htop
+
+# Check for memory leaks
+valgrind --leak-check=full python3 src/llm_server/app.py
+
+# Optimize model parameters
+# Reduce context window size
+# Use quantization for smaller models
+```
+
+#### CPU Optimization
+```bash
+# Monitor CPU usage
+top -p $(pgrep -f "python3 src/llm_server/app.py")
+
+# Use multiple workers for production
+# Configure gunicorn or similar WSGI server
+```
+
+---
+
+## 📋 Deployment Checklist
+
+### Pre-Deployment
+- [ ] **Environment Setup**: All dependencies installed
+- [ ] **Configuration**: `.env` file properly configured
+- [ ] **Testing**: All integration tests pass
+- [ ] **Security**: Input validation and logging verified
+- [ ] **Documentation**: README and guides updated
+
+### Infrastructure Deployment
+- [ ] **AWS Credentials**: Configured and tested
+- [ ] **SSH Keys**: Generated and imported to AWS
+- [ ] **Terraform**: Initialized and validated
+- [ ] **Network**: VPC and subnets configured
+- [ ] **Security Groups**: Properly restrictive
+
+### Post-Deployment
+- [ ] **Connectivity**: Bastion and LLM server accessible
+- [ ] **Application**: Web interface and API functional
+- [ ] **Monitoring**: Logs and metrics collecting
+- [ ] **Security**: Access controls verified
+- [ ] **Performance**: Response times acceptable
+
+### Rollback Plan
+- [ ] **Terraform State**: Backed up before deployment
+- [ ] **Database Backups**: Application data preserved
+- [ ] **Rollback Script**: Ready for quick reversion
+- [ ] **Communication**: Team notified of rollback procedures
+
+---
+
+## 🎓 Educational Resources
+
+### For Cybersecurity Students
+
+#### Key Learning Objectives
+1. **Infrastructure as Code**: Master Terraform for secure deployments
+2. **DevSecOps Practices**: Implement security in CI/CD pipelines
+3. **Local AI Security**: Understand privacy and security implications
+4. **Network Security**: Design secure multi-tier architectures
+5. **Access Management**: Implement least privilege and zero trust
+
+#### Hands-on Exercises
+1. **Modify Infrastructure**: Change VPC configuration and redeploy
+2. **Security Hardening**: Add additional security controls
+3. **Performance Tuning**: Optimize model parameters and server settings
+4. **Monitoring Setup**: Configure comprehensive observability
+5. **Incident Response**: Practice security incident handling
+
+#### Further Reading
+- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+- [Terraform Best Practices](https://www.terraform.io/docs/cloud/best-practices/index.html)
+- [DevSecOps Handbook](https://www.gitlab.com/handbook/engineering/security/dev-sec-ops/)
+- [Cybersecurity for AI Systems](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-213.pdf)
+
+---
+
+## 🔗 Resources
+
+- [llama.cpp Documentation](https://github.com/ggerganov/llama.cpp)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+
+---
+
+## 📞 Support
+
+For questions about this implementation, please refer to:
+- Project documentation in `/docs`
+- Team member contributions in `/team`
+- Security guidelines in `/security`
+
+**Remember**: This is a learning environment. Focus on understanding the "why" behind each security decision, not just the implementation details.
 
 ### What is llama.cpp?
 
