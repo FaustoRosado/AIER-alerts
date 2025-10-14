@@ -5,7 +5,7 @@
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 **AI/ER** is a cybersecurity capstone project that demonstrates practical implementation of secure, local Large Language Model (LLM) deployment for emergency response scenarios. This project showcases real-world application of cybersecurity principles, Infrastructure as Code (IaC), and DevSecOps practices.
 
@@ -13,7 +13,32 @@
 
 ---
 
-## 📚 Educational Objectives for Cybersecurity Students
+**AI/ER** is a cybersecurity capstone project that demonstrates practical implementation of secure, local Large Language Model (LLM) deployment for emergency response scenarios. This project showcases real-world application of cybersecurity principles, Infrastructure as Code (IaC), and DevSecOps practices.
+
+**Core Concept**: A secure, privacy-focused emergency response system using local LLMs that can operate offline and maintain data sovereignty while providing intelligent decision support.
+
+---
+
+## Educational Objectives for Cybersecurity Students
+
+This project serves as a comprehensive learning platform covering:
+
+### Security Fundamentals
+- **Data Privacy & Sovereignty**: Local LLM deployment ensures sensitive emergency data never leaves your infrastructure
+- **Zero-Trust Architecture**: Every component is secured and verified
+- **Defense in Depth**: Multiple security layers from network to application level
+
+### Infrastructure & DevSecOps
+- **Infrastructure as Code (IaC)**: Learn Terraform for repeatable, auditable infrastructure
+- **CI/CD Pipelines**: Automated testing and deployment with GitHub Actions
+- **Version Control**: Git workflows for collaborative development
+
+### AI/ML Security
+- **Local Model Deployment**: Understanding the security implications of running models locally
+- **Model Security**: Protecting against model poisoning and adversarial attacks
+- **Privacy-Preserving AI**: Ensuring no data leakage in AI systems
+
+---
 
 This project serves as a comprehensive learning platform covering:
 
@@ -34,7 +59,7 @@ This project serves as a comprehensive learning platform covering:
 
 ---
 
-## 🏃‍♂️ Sprint 2 Focus: Technical Architecture & Local LLM
+## Sprint 2 Focus: Technical Architecture & Local LLM
 
 **Sprint Goal**: Provision the foundational, version-controlled AWS CI/CD backbone using Terraform, establishing the automated pathway for code to travel from source control to an artifact repository.
 
@@ -50,7 +75,52 @@ This project serves as a comprehensive learning platform covering:
 
 ---
 
-## 🏛️ Technical Architecture
+**Sprint Goal**: Provision the foundational, version-controlled AWS CI/CD backbone using Terraform, establishing the automated pathway for code to travel from source control to an artifact repository.
+
+**Corresponding Capstone Objective**: Provision Core CI/CD Infrastructure via IaC.
+
+### Key Deliverables
+
+1. **Version-Controlled Terraform Configuration**
+2. **IAM Policy and Role Definitions (as Code)**
+3. **Initial buildspec.yml for CI Pipeline**
+4. **Local Llama.cpp Integration**
+5. **HTML Front-End Interface**
+
+---
+
+## Technical Architecture
+
+### Infrastructure Components
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        AI/ER System                             │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Local     │  │   HTML      │  │  Llama.cpp  │              │
+│  │   LLM       │  │  Front-End  │  │   Engine    │              │
+│  │  Server     │  │  Interface  │  │             │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │  Terraform  │  │  GitHub     │  │     AWS     │              │
+│  │     IaC     │  │  Actions    │  │  Resources  │              │
+│  │             │  │   CI/CD     │  │             │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Language Model** | llama.cpp | Local LLM inference engine |
+| **Infrastructure** | Terraform | Infrastructure as Code |
+| **CI/CD** | GitHub Actions | Automated pipelines |
+| **Cloud** | AWS | Secure hosting environment |
+| **Frontend** | HTML/CSS/JavaScript | User interface |
+---
 
 ### Infrastructure Components
 
