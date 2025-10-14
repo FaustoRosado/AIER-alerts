@@ -1,28 +1,3 @@
-terraform {
-  required_version = ">= 1.0.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-# Configure AWS Provider
-provider "aws" {
-  region = var.aws_region
-
-  default_tags {
-    tags = {
-      Environment   = var.environment
-      Project       = "AI-ER-Capstone"
-      ManagedBy     = "Terraform"
-      Sprint        = "2"
-      Confidentiality = "Internal"
-    }
-  }
-}
-
 # Local variables for security and consistency
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
