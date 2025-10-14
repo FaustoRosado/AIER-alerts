@@ -560,6 +560,9 @@ Icon
 debug/
 *.local
 
+# Machine-specific setup guides
+SETUP_GUIDE_MAC_M4_PRO.md
+
 # ================================================
 # MISCELLANEOUS
 # ================================================
