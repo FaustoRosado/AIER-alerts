@@ -1895,32 +1895,58 @@ ecs_cluster_name = "devsecops-prod-cluster"
 
 **Interactive Demo:** [View AI/ER Frontend Demo](demo.html)
 
-The AI Emergency Response System includes a web-based frontend interface that allows instructors and viewers to interact with the deployed application. This demo showcases:
+**Alternative: Embedded Demo (for offline viewing):**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI/ER Emergency Response Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .chat-container { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
+        .message { margin: 5px 0; padding: 5px; background: #f0f0f0; }
+        input { width: 80%; padding: 5px; }
+        button { padding: 5px 10px; margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <h1>AI/ER Emergency Response System Demo</h1>
+    <p>This is a simplified demo interface for testing the AI emergency response capabilities.</p>
+    
+    <div class="chat-container" id="chat">
+        <div class="message">System: Welcome to AI/ER Emergency Response Demo. Enter an emergency scenario to test the system.</div>
+    </div>
+    
+    <input type="text" id="userInput" placeholder="Enter emergency scenario...">
+    <button onclick="sendMessage()">Send</button>
+    
+    <script>
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const chat = document.getElementById('chat');
+            const message = input.value.trim();
+            
+            if (message) {
+                chat.innerHTML += `<div class="message">User: ${message}</div>`;
+                chat.innerHTML += `<div class="message">AI: Processing emergency scenario... (Demo response would appear here)</div>`;
+                chat.scrollTop = chat.scrollHeight;
+                input.value = '';
+            }
+        }
+        
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
+```
 
-- **Real-time LLM Integration:** Test the local Llama.cpp integration with sample emergency response scenarios
-- **Secure Infrastructure:** Demonstrate how the frontend communicates through the secure VPC, ALB, and ECS backend
-- **Monitoring Integration:** View real-time logs and metrics through the integrated monitoring stack
-- **Security Features:** Test WAF protection, rate limiting, and encrypted communications
-
-**Demo Features:**
-- Interactive chat interface with AI emergency response capabilities
-- Real-time log streaming showing backend processing
-- Security event simulation (e.g., unauthorized access attempts)
-- Performance metrics and health checks
-- Integration with deployed monitoring tools (Wazuh, Datadog, etc.)
-
-**Access Instructions:**
-1. Open the demo in a web browser
-2. Enter test scenarios in the chat interface
-3. Observe real-time logs and security events
-4. Test security controls by simulating attacks
-
-**Technical Implementation:**
-- Frontend served via S3 static website hosting with CloudFront CDN
-- Backend API deployed on ECS Fargate with auto-scaling
-- WebSocket connections for real-time log streaming
-- JWT-based authentication integrated with Cognito
-- Encrypted communications via TLS 1.3
+**Note:** This embedded version provides a basic interactive interface for demonstration purposes. For full functionality, use the external [demo.html](demo.html) file.
 
 ## Appendix G: Demo Frontend Screenshots
 ### G1: Demo Interface Overview
