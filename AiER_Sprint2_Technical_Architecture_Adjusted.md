@@ -1889,5 +1889,51 @@ ecs_cluster_name = "devsecops-prod-cluster"
   - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b
   - 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b
 - **Route Tables:** Separate route tables for public, private, and database tiers
-- **Internet Gateway:** Attached to VPC for public subnet internet access
 - **NAT Gateway:** Deployed in public subnet for private subnet outbound traffic
+
+### Demo Frontend Integration
+
+**Interactive Demo:** [View AI/ER Frontend Demo](demo.html)
+
+The AI Emergency Response System includes a web-based frontend interface that allows instructors and viewers to interact with the deployed application. This demo showcases:
+
+- **Real-time LLM Integration:** Test the local Llama.cpp integration with sample emergency response scenarios
+- **Secure Infrastructure:** Demonstrate how the frontend communicates through the secure VPC, ALB, and ECS backend
+- **Monitoring Integration:** View real-time logs and metrics through the integrated monitoring stack
+- **Security Features:** Test WAF protection, rate limiting, and encrypted communications
+
+**Demo Features:**
+- Interactive chat interface with AI emergency response capabilities
+- Real-time log streaming showing backend processing
+- Security event simulation (e.g., unauthorized access attempts)
+- Performance metrics and health checks
+- Integration with deployed monitoring tools (Wazuh, Datadog, etc.)
+
+**Access Instructions:**
+1. Open the demo in a web browser
+2. Enter test scenarios in the chat interface
+3. Observe real-time logs and security events
+4. Test security controls by simulating attacks
+
+**Technical Implementation:**
+- Frontend served via S3 static website hosting with CloudFront CDN
+- Backend API deployed on ECS Fargate with auto-scaling
+- WebSocket connections for real-time log streaming
+- JWT-based authentication integrated with Cognito
+- Encrypted communications via TLS 1.3
+
+## Appendix G: Demo Frontend Screenshots
+### G1: Demo Interface Overview
+![Demo Interface](images/demo-interface.png)
+
+### G2: Real-time Log Streaming
+![Real-time Logs](images/demo-logs.png)
+
+### G3: Security Event Simulation
+![Security Events](images/demo-security.png)
+
+3. Observe real-time logs and security events
+4. Test security controls by simulating attacks
+
+**Technical Implementation:**
+- Frontend served via S3 static website hosting with CloudFront CDN
