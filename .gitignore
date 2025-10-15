@@ -565,10 +565,7 @@ SETUP_GUIDE_MAC_M4_PRO.md
 # ================================================
 
 # Exempt specific documentation files from being ignored
-!docs/P3_ Sprint 2_ Technical Execution.txt
-!docs/Sprint 2 - Example Submission.txt
 !README.md
-!docs/
 
 # ================================================
 # MISCELLANEOUS
@@ -602,3 +599,61 @@ pnpm-lock.yaml
 composer.lock
 Gemfile.lock
 Pipfile.lock
+
+# Additional best practices
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Sensitive files
+.env
+.env.local
+.env.production
+*.key
+*.pem
+secrets/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Node modules (if using Node.js)
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Terraform state (if applicable)
+*.tfstate
+*.tfstate.*
+
+# Docker
+.dockerignore
+
+# Miscellaneous
+*.pid
+*.seed
