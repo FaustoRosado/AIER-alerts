@@ -528,11 +528,9 @@ Temporary Items
 Recycler/
 Icon
 
-# ================================================
-# PROJECT SPECIFIC
-# ================================================
-
-# AI/ER Project specific
+# Project assets (placeholders and demos - not for version control)
+images/
+demo.html
 *.model
 *.weights
 *.onnx
