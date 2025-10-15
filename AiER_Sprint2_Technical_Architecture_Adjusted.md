@@ -58,52 +58,58 @@
 
 ## Core Infrastructure Provisioned
 
-### Networking (How Computers Connect)
-Think of this as building the roads and neighborhoods for our system:
+### Networking (Network Infrastructure)
+The network infrastructure forms the foundation of our system architecture:
 
-- **VPC (Virtual Private Cloud):** A private network in AWS with IP range 10.0.0.0/16 in the US East region
-- **Subnets (Network Sections):**
-  - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in availability zones us-east-1a and us-east-1b - These can connect to the internet
-  - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b - These cannot connect to the internet directly
-  - 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b - Special subnets just for databases
-- **Route Tables:** Different rules for how traffic flows in public, private, and database areas
-- **Internet Gateway:** Allows public subnets to access the internet
-- **NAT Gateway:** Lets private subnets access the internet indirectly (for updates, etc.)
-- **VPC Flow Logs:** Records all network traffic and sends it to CloudWatch for 30 days
+- **VPC (Virtual Private Cloud):** A dedicated private network in AWS with IP address range 10.0.0.0/16 located in the US East region
+- **Subnets (Network Segments):**
+  - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in availability zones us-east-1a and us-east-1b - These subnets have direct internet connectivity
+  - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b - These subnets do not have direct internet access
+  - 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b - Dedicated subnets exclusively for database resources
+- **Route Tables:** Distinct routing configurations for public, private, and database network tiers
+- **Internet Gateway:** Enables public subnets to establish internet connectivity
+- **NAT Gateway:** Provides indirect internet access for private subnets to facilitate updates and outbound traffic
+- **VPC Flow Logs:** Comprehensive network traffic logging delivered to CloudWatch with 30-day retention period
 
 ### IAM (Identity and Access Management)
-This is like giving different keys to different people - each person only gets access to what they need:
+Identity and Access Management ensures secure and controlled access to AWS resources:
 
-- **Security Roles We Created:**
-  - `devsecops-pipeline-role` - Gives CodePipeline limited access to build, store, and run containers
-  - `ecs-task-execution-role` - Allows ECS tasks to get container images and send logs to CloudWatch
-  - `lambda-log-parser-role` - Lets Lambda functions read from S3 and write to OpenSearch
-  - `wazuh-manager-role` - Allows Wazuh server to read CloudTrail logs from S3
-- **Security Policies:** All permissions follow "least privilege" - only give access to specific resources, not everything
-- **MFA (Multi-Factor Authentication):** Root AWS account has extra security; all IAM users must use MFA to log in
+- **Security Roles Created:**
+  - `devsecops-pipeline-role` - Grants CodePipeline restricted access to build, store, and execute containerized applications
+  - `ecs-task-execution-role` - Enables ECS tasks to retrieve container images and transmit logs to CloudWatch
+  - `lambda-log-parser-role` - Permits Lambda functions to read from S3 and write to OpenSearch
+  - `wazuh-manager-role` - Allows Wazuh server to access CloudTrail logs from S3
+- **Security Policies:** All access permissions adhere to the principle of least privilege, granting only essential resource access
+- **MFA (Multi-Factor Authentication):** Root AWS account secured with additional authentication; all IAM users required to enable MFA for console access
 
-### Compute/Storage (Where Things Run and Data is Stored)
-- **ECS Cluster:** `devsecops-prod-cluster` using Fargate (serverless container service)
-- **ECR Repository:** `devsecops-api` with automatic security scanning when we push new container images
-- **S3 Buckets (File Storage):**
-  - `cloudguardians-cloudtrail-logs` - Stores CloudTrail logs with strong encryption
-  - `cloudguardians-pipeline-artifacts` - Stores build artifacts with version history
-  - `cloudguardians-wazuh-logs` - Stores security alerts, moves to cheaper storage after 90 days
-- **RDS Database:** PostgreSQL 15.4 (`db.t3.micro`) in private subnet with automatic backups
+### Compute/Storage (Computational and Storage Resources)
+The computational and storage infrastructure supports application execution and data persistence:
 
-### Security/Logging Services (Protection and Monitoring)
-- **GuardDuty:** AWS threat detection service in us-east-1, sends findings to Security Hub and S3
-- **Security Hub:** Central dashboard with AWS security best practices and CIS benchmarks v1.4.0
-- **CloudTrail:** Organization-wide logging of all management and data events to encrypted S3
-- **Config:** AWS service that checks if our resources follow security rules (encryption, passwords, etc.)
-- **Secrets Manager:** Safely stores database passwords with automatic rotation every 30 days
-- **Systems Manager Parameter Store:** Stores non-sensitive configuration settings
+- **ECS Cluster:** `devsecops-prod-cluster` utilizing Fargate serverless container orchestration
+- **ECR Repository:** `devsecops-api` with automated security vulnerability scanning upon image upload
+- **S3 Buckets (Object Storage):**
+  - `cloudguardians-cloudtrail-logs` - Stores CloudTrail audit logs with enhanced encryption
+  - `cloudguardians-pipeline-artifacts` - Maintains build artifacts with version control
+  - `cloudguardians-wazuh-logs` - Archives security alerts with lifecycle management (90 days to Glacier)
+- **RDS Database:** PostgreSQL 15.4 instance (`db.t3.micro`) deployed in private subnet with automated backup capabilities
 
-### DevSecOps-Specific Services (Development and Security Tools)
-- **CodePipeline:** `devsecops-api-pipeline` with 5 stages: Source → Build → Test → Security Scan → Deploy
-- **CodeBuild:** Builds our application, scans for vulnerabilities, and validates infrastructure code
-- **CodeDeploy:** Safely deploys updates using blue/green strategy (test new version alongside old)
-- **WAF:** Web protection attached to load balancer with AWS security rules
+### Security/Logging Services (Security and Monitoring Infrastructure)
+Security and monitoring services provide comprehensive threat detection and operational visibility:
+
+- **GuardDuty:** AWS threat detection service operational in us-east-1, forwarding findings to Security Hub and S3
+- **Security Hub:** Centralized security dashboard implementing AWS Foundational Security Best Practices and CIS AWS Foundations Benchmark v1.4.0
+- **CloudTrail:** Organization-level audit trail logging all management and data events to encrypted S3 storage
+- **Config:** AWS configuration management service validating resource compliance with security rules (encryption, password policies, etc.)
+- **Secrets Manager:** Secure credential storage with automated 30-day rotation cycles
+- **Systems Manager Parameter Store:** Repository for non-sensitive configuration parameters
+
+### DevSecOps-Specific Services (Development and Security Operations Tools)
+Development and security operations services enable automated deployment and security validation:
+
+- **CodePipeline:** `devsecops-api-pipeline` with 5-stage workflow: Source → Build → Test → Security Scan → Deploy
+- **CodeBuild:** Application build environment with vulnerability scanning and infrastructure validation
+- **CodeDeploy:** Safe deployment mechanism using blue/green strategy for zero-downtime updates
+- **WAF:** Web application firewall attached to load balancer with AWS managed security rules
 
 ## Code Structure
 

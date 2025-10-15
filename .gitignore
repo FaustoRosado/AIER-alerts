@@ -530,7 +530,6 @@ Icon
 
 # Project assets (placeholders and demos - not for version control)
 images/
-demo.html
 *.model
 *.weights
 *.onnx
