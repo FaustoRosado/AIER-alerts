@@ -1,0 +1,987 @@
+﻿Sprint 2 Example Submission 
+Cover Page 
+Team Name: CloudGuardians 
+Project Title: DevSecOps Pipeline with Automated Security Scanning Course: Cybersecurity Capstone - Phase 3 
+Sprint: 2 (Core Architecture Build) 
+Submission Date: April 15, 2025 
+Team Members & Roles: 
+● Sarah Chen - Team Lead & Project Manager 
+● Marcus Johnson - Infrastructure Engineer 
+● Priya Patel - Security Analyst & SIEM Engineer 
+● David Kim - DevSecOps Engineer 
+● Elena Rodriguez - Developer 
+● James Williams - Documentation Owner 
+Table of Contents 
+1. Infrastructure as Code (IaC) 
+2. Updated Topology & Architecture Diagrams 
+3. CI/CD Pipeline Implementation 
+4. AWS & Third-Party Tool Integration 
+5. Deployment Evidence 
+6. End-to-End Workflow Validation 
+7. Team Member Contributions (Sprint 2) 
+8. Appendix 
+1) �� Infrastructure as Code (IaC)
+IaC Tool Selection 
+Tool: Terraform v1.7.5 
+Justification: We chose Terraform over CloudFormation for the following reasons: 
+● Multi-cloud capability (future expansion potential) 
+● Strong module ecosystem and community support 
+● State management with S3 backend and DynamoDB locking 
+● Better readability and reusability compared to JSON/YAML templates ● Team familiarity from previous coursework 
+GitHub Repository 
+Repository URL (sample URL): https://github.com/cloudguardians/devsecops-capstone Branch Structure: 
+● main - production-ready code 
+● develop - integration branch 
+● feature/* - individual feature branches 
+Commit Standards: All commits follow conventional commit format (e.g., feat: add VPC module, fix: correct IAM policy syntax) 
+Core Infrastructure Provisioned 
+Networking 
+● VPC: 10.0.0.0/16 CIDR block across us-east-1 
+● Subnets: 
+○ 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in us-east-1a and us-east-1b ○ 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b ○ 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b 
+● Route Tables: Separate route tables for public, private, and database tiers ● Internet Gateway: Attached to VPC for public subnet internet access 
+● NAT Gateway: Deployed in public subnet for private subnet outbound traffic ● VPC Flow Logs: Enabled and sent to CloudWatch Logs (retention: 30 days) 
+IAM 
+● Roles Created:
+○ devsecops-pipeline-role - For CodePipeline with least-privilege access to CodeBuild, ECR, ECS 
+○ ecs-task-execution-role - For ECS tasks to pull images from ECR and write logs to CloudWatch 
+○ lambda-log-parser-role - For Lambda functions to read from S3 and write to OpenSearch 
+○ wazuh-manager-role - For Wazuh EC2 instance to read CloudTrail logs from S3 ● Policies: All policies follow least-privilege principle with explicit resource ARNs (no wildcards except where required by AWS service) 
+● MFA Enforcement: Root account MFA enabled; IAM users require MFA for console access 
+Compute/Storage 
+● ECS Cluster: devsecops-prod-cluster using Fargate launch type 
+● ECR Repository: devsecops-api with image scanning on push enabled ● S3 Buckets: 
+○ cloudguardians-cloudtrail-logs - CloudTrail logs with SSE-KMS encryption ○ cloudguardians-pipeline-artifacts - CodePipeline artifacts with versioning enabled ○ cloudguardians-wazuh-logs - Wazuh alert logs with lifecycle policy (90 days → Glacier) 
+● RDS: PostgreSQL 15.4 instance (db.t3.micro) in private subnet with automated backups Security/Logging Services 
+● GuardDuty: Enabled in us-east-1 with findings exported to Security Hub and S3 ● Security Hub: Enabled with AWS Foundational Security Best Practices and CIS AWS Foundations Benchmark v1.4.0 
+● CloudTrail: Organization trail cloudguardians-org-trail logging all management and data events to S3 with SSE-KMS encryption 
+● Config: Enabled with rules for S3 bucket encryption, IAM password policy, and VPC Flow Logs 
+● Secrets Manager: Storing RDS credentials with automatic 30-day rotation ● Systems Manager Parameter Store: Storing non-sensitive configuration parameters 
+DevSecOps-Specific Services 
+● CodePipeline: devsecops-api-pipeline with 5 stages (Source, Build, Test, Security Scan, Deploy) 
+● CodeBuild: Build projects for application build, Trivy scanning, and Terraform validation
+● CodeDeploy: Blue/green deployment to ECS Fargate 
+● WAF: Web ACL attached to Application Load Balancer with AWS Managed Rules (Core Rule Set, Known Bad Inputs) 
+Code Structure 
+None 
+terraform/  
+├── modules/  
+│ ├── vpc/  
+│ │ ├── main.tf  
+│ │ ├── variables.tf  
+│ │ ├── outputs.tf  
+│ │ └── README.md  
+│ ├── iam/  
+│ ├── ecs/  
+│ ├── rds/  
+│ └── security/  
+├── environments/  
+│ ├── dev/  
+│ │ ├── main.tf  
+│ │ ├── terraform.tfvars  
+│ │ └── backend.tf  
+│ ├── staging/  
+│ └── prod/  
+├── .gitignore  
+└── README.md  
+Naming Convention: {project}-{environment}-{resource}-{identifier} 
+Example: cloudguardians-prod-ecs-api 
+Tagging Strategy: 
+● Project: CloudGuardians 
+● Environment: Dev|Staging|Prod 
+● Owner: [Team Member Name] 
+● CostCenter: Capstone 
+● ManagedBy: Terraform
+Code Snippet (See Appendix A for full code) 
+# VPC Module - modules/vpc/main.tf  
+resource "aws_vpc" "main" {  
+ cidr_block = var.vpc_cidr  
+ enable_dns_hostnames = true  
+ enable_dns_support = true  
+  
+ tags = merge(  
+ var.common_tags,  
+ {  
+ Name = "${var.project}-${var.environment}-vpc"   }  
+ )  
+}  
+  
+resource "aws_flow_log" "main" {  
+ iam_role_arn = aws_iam_role.flow_log.arn  
+ log_destination = aws_cloudwatch_log_group.flow_log.arn   traffic_type = "ALL"  
+ vpc_id = aws_vpc.main.id  
+  
+ tags = merge(  
+ var.common_tags,  
+ {  
+ Name = "${var.project}-${var.environment}-vpc-flow-log"   }  
+ )  
+}  
+2) �� Updated Topology & Architecture Diagrams 
+Updated Topology Diagram (sample only)
+  
+Diagram Description: 
+The architecture shows a three-tier application deployed across two availability zones (us-east-1a and us-east-1b) with the following components: 
+Network Layer: 
+● VPC (10.0.0.0/16) with public, private, and database subnets 
+● Internet Gateway for public internet access 
+● NAT Gateway in public subnet for private subnet outbound traffic 
+● Application Load Balancer in public subnets distributing traffic to ECS tasks ● Security groups controlling traffic between tiers 
+Application Layer: 
+● ECS Fargate cluster running containerized API application 
+● ECR repository storing container images with vulnerability scanning 
+● RDS PostgreSQL database in private database subnets 
+● Secrets Manager storing database credentials 
+CI/CD Pipeline: 
+● GitHub repository triggering CodePipeline on commit
+● CodeBuild performing build, test, and security scanning (Trivy, Checkov) ● CodeDeploy performing blue/green deployment to ECS 
+Security & Monitoring: 
+● GuardDuty monitoring for threats across VPC and AWS API calls 
+● Security Hub aggregating findings from GuardDuty, Config, and Inspector ● CloudTrail logging all API calls to S3 with KMS encryption 
+● VPC Flow Logs sent to CloudWatch Logs 
+● Wazuh manager (EC2) collecting logs from CloudTrail S3 bucket and ECS tasks ● WAF protecting Application Load Balancer 
+Data Flow: 
+1. Developer commits code to GitHub 
+2. CodePipeline triggered → CodeBuild runs tests and scans 
+3. If passed, container image pushed to ECR 
+4. CodeDeploy performs blue/green deployment to ECS 
+5. User traffic flows through ALB → WAF → ECS tasks → RDS 
+6. All API calls logged to CloudTrail → S3 → Wazuh 
+7. GuardDuty findings → Security Hub → EventBridge → SNS → Slack alerts AWS Well-Architected Framework Alignment 
+Security Pillar: 
+● Identity & Access Management: Least-privilege IAM roles with explicit resource ARNs; MFA enforced; no long-term access keys 
+● Detective Controls: GuardDuty, Security Hub, Config, CloudTrail, VPC Flow Logs enabled ● Infrastructure Protection: Security groups with minimal required ports; WAF protecting public endpoints; private subnets for application and database tiers 
+● Data Protection: Encryption at rest (S3 SSE-KMS, RDS encryption, EBS encryption) and in transit (TLS 1.2+ enforced on ALB) 
+Reliability Pillar: 
+● Foundations: VPC designed with sufficient IP space; service quotas reviewed ● Change Management: Infrastructure as Code with version control; automated deployments via pipeline 
+● Failure Management: Multi-AZ deployment for high availability; RDS automated backups; blue/green deployments minimize downtime
+Cost Optimization Pillar: 
+● Expenditure Awareness: Resource tagging for cost allocation; CloudWatch billing alarms set at $50, $100, $150 
+● Cost-Effective Resources: Fargate for ECS (no EC2 management overhead); t3.micro for RDS (right-sized for dev workload); S3 lifecycle policies moving logs to Glacier after 90 days 
+Changes from Sprint 1 
+Sprint 1 (Initial Topology): 
+● High-level conceptual diagram showing VPC, CI/CD concept, and placeholder security services 
+Sprint 2 (Current Topology): 
+● Detailed subnet architecture with CIDR blocks and availability zones 
+● Specific AWS services deployed (ECS, ECR, RDS, ALB, WAF) 
+● CI/CD pipeline stages and security gates defined 
+● Security services configured (GuardDuty, Security Hub, CloudTrail, Config) ● Wazuh integration with data flow from CloudTrail S3 bucket 
+● Network security controls (security groups, NACLs) specified 
+● Encryption mechanisms (KMS keys) for data at rest 
+3) �� CI/CD Pipeline Implementation 
+Pipeline Tool 
+Tool: AWS CodePipeline with CodeBuild 
+Justification: 
+● Native AWS integration with ECR, ECS, IAM 
+● No additional infrastructure to manage (serverless) 
+● Built-in integration with GitHub via CodeStar Connections 
+● Cost-effective for our workload (pay per build minute) 
+● Supports parallel execution and custom build environments 
+Pipeline Stages
+Stage 1: Source 
+● Trigger: GitHub webhook on push to main branch 
+● Repository: https://github.com/cloudguardians/devsecops-api ● Connection: CodeStar Connection cloudguardians-github 
+● Output Artifact: SourceArtifact (application source code) 
+Stage 2: Build 
+● Build Project: devsecops-api-build 
+● Environment: aws/codebuild/standard:7.0 (Ubuntu, Docker 24.x, Python 3.11) ● Actions: 
+○ Install dependencies (pip install -r requirements.txt) 
+○ Run linters (flake8, pylint) 
+○ Build Docker image 
+○ Tag image with commit SHA and latest 
+● Output Artifact: BuildArtifact (imagedefinitions.json for ECS) 
+Stage 3: Test 
+● Build Project: devsecops-api-test 
+● Actions: 
+○ Run unit tests with pytest (coverage threshold: 80%) 
+○ Run integration tests against test database 
+○ Generate test report (JUnit XML format) 
+● Success Criteria: All tests pass; coverage ≥80% 
+● Failure Action: Pipeline stops; SNS notification sent to team Slack channel Stage 4: Security Scan 
+● Build Project: devsecops-api-security-scan 
+● Parallel Actions: 
+1. Container Scanning (Trivy): 
+■ Scan Docker image for CVEs 
+■ Fail on HIGH or CRITICAL vulnerabilities 
+■ Generate SARIF report uploaded to Security Hub 
+2. IaC Scanning (Checkov): 
+■ Scan Terraform code for misconfigurations 
+■ Check against CIS benchmarks 
+■ Fail on HIGH severity policy violations
+3. Secret Scanning (TruffleHog): 
+■ Scan git history for exposed secrets 
+■ Fail if secrets detected 
+4. SAST (Bandit for Python): 
+■ Static analysis for security issues in code 
+■ Fail on HIGH confidence issues 
+● Success Criteria: All scans pass or only LOW/MEDIUM findings 
+● Output: Security scan reports uploaded to S3 cloudguardians-security-reports Stage 5: Deploy 
+● Deployment: CodeDeploy blue/green deployment to ECS 
+● Target: devsecops-prod-cluster / api-service 
+● Process: 
+1. New task definition created with new image 
+2. New tasks (green) started alongside existing tasks (blue) 
+3. ALB target group routes test traffic to green tasks 
+4. Health checks performed (5 successful checks required) 
+5. Traffic shifted from blue to green (100% cutover) 
+6. Blue tasks terminated after 10-minute bake time 
+● Rollback: Automatic rollback if health checks fail or CloudWatch alarms trigger ● Post-Deploy: Smoke tests run against production endpoint; Slack notification sent 
+Buildspec Configuration Files (See Appendix B for full files) 
+buildspec-build.yml: 
+yaml 
+Copy 
+version: 0.2  
+phases:  
+ pre_build:  
+ commands:  
+ - echo Logging in to Amazon ECR...  
+ - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY   - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)  
+ - IMAGE_TAG=${COMMIT_HASH:=latest} 
+ build:  
+ commands:  
+ - echo Build started on `date`  
+ - echo Building the Docker image...  
+ - docker build -t $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG .   - docker tag $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPO_NAME:latest  
+ post_build:  
+ commands:  
+ - echo Build completed on `date`  
+ - echo Pushing the Docker images...  
+ - docker push $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG   - docker push $ECR_REGISTRY/$IMAGE_REPO_NAME:latest   - printf '[{"name":"api-container","imageUri":"%s"}]' $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json  artifacts:  
+ files: imagedefinitions.json  
+buildspec-security.yml: 
+yaml 
+Copy 
+version: 0.2  
+phases:  
+ install:  
+ commands:  
+ - echo Installing security scanning tools...  
+ - wget -qO - 
+https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -  
+ - echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | tee -a /etc/apt/sources.list.d/trivy.list   - apt-get update && apt-get install -y trivy  
+ - pip3 install checkov truffleHog bandit  
+ build:  
+ commands:  
+ - echo Running Trivy container scan...  
+ - trivy image --severity HIGH,CRITICAL --exit-code 1 --format sarif --output trivy-report.sarif 
+$ECR_REGISTRY/$IMAGE_REPO_NAME:latest 
+ - echo Running Checkov IaC scan...  
+ - checkov -d terraform/ --framework terraform --output cli --output junitxml --output-file-path checkov-report.xml --hard-fail-on HIGH  
+ - echo Running TruffleHog secret scan...  
+ - trufflehog git file://. --json --fail > 
+trufflehog-report.json  
+ - echo Running Bandit SAST...  
+ - bandit -r app/ -f json -o bandit-report.json   post_build:  
+ commands:  
+ - echo Uploading security reports to S3...  
+ - aws s3 cp trivy-report.sarif 
+s3://cloudguardians-security-reports/trivy/$(date +%Y%m%d)/   - aws s3 cp checkov-report.xml 
+s3://cloudguardians-security-reports/checkov/$(date +%Y%m%d)/   - aws s3 cp trufflehog-report.json 
+s3://cloudguardians-security-reports/trufflehog/$(date +%Y%m%d)/   - aws s3 cp bandit-report.json 
+s3://cloudguardians-security-reports/bandit/$(date +%Y%m%d)/  
+Security Gates 
+Gate 1: Test Coverage 
+● Minimum 80% code coverage required 
+● Pipeline fails if threshold not met 
+● Coverage report uploaded to S3 for review 
+Gate 2: Container Vulnerabilities 
+● Trivy scan fails pipeline on HIGH or CRITICAL CVEs 
+● Exception process: Document in Jira ticket with remediation plan; manual approval required to proceed 
+Gate 3: IaC Misconfigurations 
+● Checkov fails pipeline on HIGH severity policy violations
+● Common checks: S3 bucket encryption, IAM password policy, security group rules, CloudTrail enabled 
+Gate 4: Secrets Detection 
+● TruffleHog fails pipeline if secrets found in git history 
+● Remediation: Rotate exposed secrets; use git-filter-repo to remove from history Gate 5: SAST Findings 
+● Bandit fails pipeline on HIGH confidence security issues 
+● Common issues: SQL injection, hardcoded passwords, insecure deserialization Pipeline Diagram (sample only) 
+  
+Flow: 
+1. Developer pushes code to GitHub main branch 
+2. GitHub webhook triggers CodePipeline 
+3. Source Stage: Code pulled from GitHub 
+4. Build Stage: Docker image built and pushed to ECR 
+5. Test Stage: Unit and integration tests run 
+○ ✅ Pass → Continue 
+○ ❌ Fail → Stop pipeline; notify team
+6. Security Scan Stage: Parallel scans (Trivy, Checkov, TruffleHog, Bandit) ○ ✅ All pass → Continue 
+○ ❌ Any fail → Stop pipeline; notify team; upload reports to S3 
+7. Deploy Stage: Blue/green deployment to ECS 
+○ New tasks started 
+○ Health checks performed 
+○ Traffic shifted 
+○ Old tasks terminated 
+8. Post-Deploy: Smoke tests; Slack notification 
+Decision Points: 
+● After Test Stage: Continue only if all tests pass 
+● After Security Scan Stage: Continue only if no HIGH/CRITICAL findings (or approved exceptions) 
+● During Deploy Stage: Automatic rollback if health checks fail 
+4) �� AWS & Third-Party Tool Integration 
+AWS Services Configured 
+Core Security & Logging 
+IAM: 
+● Configuration: 
+○ 12 roles created with least-privilege policies 
+○ Password policy: minimum 14 characters, require uppercase, lowercase, numbers, symbols; 90-day rotation 
+○ MFA enforced for all console users 
+○ No root account access keys; root MFA enabled 
+● Evidence: See Appendix C - Screenshot C1 (IAM roles list), C2 (password policy) GuardDuty: 
+● Configuration: 
+○ Enabled in us-east-1
+○ Findings exported to Security Hub and S3 bucket 
+cloudguardians-guardduty-findings 
+○ S3 Protection and EKS Protection enabled (EKS for future use) 
+○ Finding publishing frequency: 15 minutes 
+● Integration: Findings trigger EventBridge rule → Lambda → Slack notification for HIGH/CRITICAL findings 
+● Evidence: See Appendix C - Screenshot C3 (GuardDuty dashboard), C4 (sample findings) CloudTrail: 
+● Configuration: 
+○ Organization trail cloudguardians-org-trail 
+○ Logging all management events and S3 data events 
+○ Log file validation enabled 
+○ Logs delivered to S3 cloudguardians-cloudtrail-logs with SSE-KMS encryption (key: alias/cloudtrail-key) 
+○ CloudWatch Logs integration enabled (log group: 
+/aws/cloudtrail/cloudguardians) 
+○ Insights enabled for anomaly detection 
+● Evidence: See Appendix C - Screenshot C5 (CloudTrail configuration), C6 (sample events in S3) 
+Security Hub: 
+● Configuration: 
+○ Enabled in us-east-1 
+○ Standards enabled: 
+■ AWS Foundational Security Best Practices v1.0.0 
+■ CIS AWS Foundations Benchmark v1.4.0 
+○ Integrations: GuardDuty, Config, IAM Access Analyzer, Inspector 
+○ Findings aggregated from all sources 
+○ Custom insights created for high-severity findings by service 
+● Evidence: See Appendix C - Screenshot C7 (Security Hub dashboard), C8 (findings by severity) 
+Config: 
+● Configuration: 
+○ Enabled in us-east-1 
+○ Recording all resource types
+○ Managed rules enabled: 
+■ s3-bucket-server-side-encryption-enabled 
+■ iam-password-policy 
+■ vpc-flow-logs-enabled 
+■ cloudtrail-enabled 
+■ rds-storage-encrypted 
+○ Configuration snapshots delivered to S3 cloudguardians-config-snapshots ● Evidence: See Appendix C - Screenshot C9 (Config rules compliance), C10 (resource timeline) 
+VPC Flow Logs: 
+● Configuration: 
+○ Enabled for VPC cloudguardians-prod-vpc 
+○ Traffic type: ALL (accepted and rejected) 
+○ Destination: CloudWatch Logs (log group: /aws/vpc/flowlogs) 
+○ Retention: 30 days 
+○ Custom format including VPC ID, subnet ID, instance ID, action, protocol ● Evidence: See Appendix C - Screenshot C11 (VPC Flow Logs configuration), C12 (sample flow logs) 
+CloudWatch: 
+● Configuration: 
+○ Log groups created for VPC Flow Logs, CloudTrail, ECS tasks, Lambda functions ○ Metric filters created for: 
+■ Unauthorized API calls 
+■ Root account usage 
+■ IAM policy changes 
+■ Security group changes 
+○ Alarms created for: 
+■ ECS task CPU > 80% 
+■ ECS task memory > 80% 
+■ ALB 5xx errors > 10 in 5 minutes 
+■ Estimated charges > $50, $100, $150 
+○ Dashboard created showing key metrics (ECS health, ALB requests, GuardDuty findings count) 
+● Evidence: See Appendix C - Screenshot C13 (CloudWatch dashboard), C14 (alarms) SNS/SQS:
+● Configuration: 
+○ SNS topic cloudguardians-security-alerts for high-severity findings 
+○ Subscriptions: Slack webhook, team email distribution list 
+○ SQS queue cloudguardians-log-processing for buffering logs to Lambda ○ Dead-letter queue configured for failed message processing 
+● Evidence: See Appendix C - Screenshot C15 (SNS topic), C16 (Slack alert example) DevSecOps-Specific Services 
+CodePipeline/CodeBuild/CodeDeploy: 
+● Configuration: 
+○ Pipeline devsecops-api-pipeline with 5 stages (detailed in Section 3) 
+○ CodeBuild projects using aws/codebuild/standard:7.0 environment 
+○ Build logs sent to CloudWatch Logs 
+○ CodeDeploy blue/green deployment with 10-minute bake time 
+● Evidence: See Appendix D - Screenshot D1 (pipeline execution), D2 (CodeBuild logs), D3 (CodeDeploy deployment) 
+ECR: 
+● Configuration: 
+○ Repository devsecops-api with image scanning on push enabled 
+○ Scan on push using AWS native scanning (powered by Clair) 
+○ Lifecycle policy: Keep last 10 images; expire untagged images after 7 days ○ Repository policy allows pull from ECS task execution role only 
+● Evidence: See Appendix D - Screenshot D4 (ECR repository), D5 (scan results showing vulnerabilities) 
+ECS/Fargate: 
+● Configuration: 
+○ Cluster devsecops-prod-cluster using Fargate launch type 
+○ Service api-service with 2 desired tasks for high availability 
+○ Task definition with 0.5 vCPU, 1 GB memory 
+○ Container logs sent to CloudWatch Logs (log group: /ecs/api-service) ○ Task execution role with permissions to pull from ECR and write logs ○ Task role with permissions to access Secrets Manager and Parameter Store 
+● Evidence: See Appendix D - Screenshot D6 (ECS cluster), D7 (running tasks), D8 (task logs)
+Secrets Manager: 
+● Configuration: 
+○ Secret prod/db/credentials storing RDS username and password 
+○ Automatic rotation enabled (30-day interval) using Lambda rotation function ○ Encryption with KMS key alias/secrets-manager-key 
+○ Resource policy restricts access to ECS task role only 
+● Evidence: See Appendix D - Screenshot D9 (Secrets Manager secret), D10 (rotation configuration) 
+Systems Manager: 
+● Configuration: 
+○ Parameter Store parameters for non-sensitive config (API endpoints, feature flags) 
+○ Session Manager enabled for EC2 access (Wazuh manager) without SSH keys ○ Patch Manager baseline created for future EC2 patching automation ● Evidence: See Appendix D - Screenshot D11 (Parameter Store), D12 (Session Manager session to Wazuh EC2) 
+WAF: 
+● Configuration: 
+○ Web ACL cloudguardians-api-waf attached to Application Load Balancer ○ Managed rule groups: 
+■ AWS Managed Rules - Core Rule Set (CRS) 
+■ AWS Managed Rules - Known Bad Inputs 
+■ AWS Managed Rules - SQL Database 
+○ Rate-based rule: Block IP if > 2000 requests in 5 minutes 
+○ Logging enabled to S3 cloudguardians-waf-logs 
+● Evidence: See Appendix D - Screenshot D13 (WAF web ACL), D14 (blocked requests) Third-Party Tools Integration 
+Wazuh (Host-based IDS/IPS, SIEM, Compliance) 
+Deployment: 
+● Wazuh Manager: EC2 t3.medium instance in private subnet (10.0.10.50) ● OS: Ubuntu 22.04 LTS 
+● Version: Wazuh 4.7.2
+● Access: Via Session Manager (no SSH keys); Wazuh dashboard via ALB with Cognito authentication 
+● High Availability: Single manager for Sprint 2; multi-node cluster planned for Sprint 4 Integration: 
+1. CloudTrail Log Ingestion: 
+○ S3 bucket cloudguardians-cloudtrail-logs configured as Wazuh data source ○ Wazuh manager polls S3 every 5 minutes for new logs 
+○ CloudTrail logs parsed and indexed in Wazuh 
+○ Configuration in /var/ossec/etc/ossec.conf: 
+xml 
+Copy 
+<wodle name="aws-s3">  
+ <disabled>no</disabled>  
+ <interval>5m</interval>  
+ <run_on_start>yes</run_on_start>  
+ <bucket type="cloudtrail">  
+ <name>cloudguardians-cloudtrail-logs</name>  
+ <aws_profile>default</aws_profile>  
+ </bucket>  
+</wodle>  
+2. 
+3. GuardDuty Findings Integration: 
+○ EventBridge rule forwards GuardDuty findings to SNS topic 
+○ Lambda function guardduty-to-wazuh subscribes to SNS and forwards to Wazuh API 
+○ Findings appear in Wazuh dashboard with severity mapping (GuardDuty HIGH → Wazuh Level 10) 
+4. ECS Agent Deployment: 
+○ Wazuh agent sidecar container added to ECS task definition 
+○ Agent reports file integrity monitoring (FIM) and log analysis to Wazuh manager ○ Agent configuration monitors /app/logs and /etc directories
+Use Cases Configured: 
+● File Integrity Monitoring (FIM): 
+○ Monitoring /etc, /bin, /sbin, /usr/bin on Wazuh manager 
+○ Monitoring /app/config in ECS containers 
+○ Real-time alerts on file changes 
+● Rootkit Detection: 
+○ Daily rootkit scans using rootcheck module 
+○ Checks for hidden processes, ports, files 
+● CIS Benchmarks: 
+○ CIS Ubuntu 22.04 benchmark enabled on Wazuh manager 
+○ CIS Docker benchmark enabled for ECS containers 
+○ Compliance score: 87% (Sprint 2 baseline) 
+● PCI DSS Compliance: 
+○ PCI DSS v4.0 compliance module enabled 
+○ Monitoring requirements: 10.2 (audit logs), 10.3 (log integrity), 11.5 (FIM) ○ Compliance dashboard showing coverage by requirement 
+Configuration Details: 
+● Alert Levels: Configured to forward Level 7+ alerts to Security Hub via custom integration script 
+● Active Response: Disabled in Sprint 2 (will enable in Sprint 3 for automated blocking) ● Log Retention: 90 days in Wazuh; archived to S3 after 30 days 
+Evidence: 
+● See Appendix E - Screenshot E1 (Wazuh dashboard overview) 
+● See Appendix E - Screenshot E2 (CloudTrail events in Wazuh) 
+● See Appendix E - Screenshot E3 (GuardDuty findings in Wazuh) 
+● See Appendix E - Screenshot E4 (FIM alerts) 
+● See Appendix E - Screenshot E5 (CIS compliance dashboard showing 87% score) ● See Appendix E - Screenshot E6 (PCI DSS compliance dashboard) 
+Splunk (Enterprise SIEM & Log Analytics) 
+Note: Splunk integration is planned for Sprint 3. In Sprint 2, we completed the foundational setup: 
+Deployment:
+● Splunk Enterprise: Trial license (60 days) on EC2 t3.xlarge in private subnet ● Version: Splunk Enterprise 9.1.3 
+● Access: Via ALB with HTTPS; Cognito authentication planned for Sprint 3 Sprint 2 Setup: 
+● Splunk instance deployed and accessible 
+● Splunk Add-on for AWS installed (version 7.3.0) 
+● S3 input configured for CloudTrail logs (testing phase) 
+● Splunk App for AWS Security installed 
+● Initial dashboards created (AWS Overview, CloudTrail Activity) 
+Planned Sprint 3 Integration: 
+● Configure Kinesis Firehose → Splunk HEC for real-time log ingestion ● Install TA-GuardDuty add-on for GuardDuty findings 
+● Create correlation searches for threat detection 
+● Build custom dashboards for SOC analysts 
+Evidence: 
+● See Appendix E - Screenshot E7 (Splunk login page) 
+● See Appendix E - Screenshot E8 (Splunk Add-on for AWS installed) 
+Cloud-Native Tools 
+Datadog (Infrastructure Monitoring): 
+● Deployment: Datadog agent deployed as ECS sidecar container 
+● Integration: 
+○ AWS integration configured via IAM role (read-only access to CloudWatch, EC2, ECS, RDS) 
+○ ECS task metrics, logs, and traces sent to Datadog 
+○ Custom dashboards for ECS cluster health, API latency, error rates 
+● Alerting: Alerts configured for high CPU, memory, and error rates; notifications to Slack ● Evidence: See Appendix E - Screenshot E9 (Datadog ECS dashboard), E10 (Datadog alerts) 
+Data Flow Validation 
+Test 1: CloudTrail → Wazuh Flow
+● Action: Created a new S3 bucket via AWS Console 
+● Expected: CloudTrail logs API call → S3 → Wazuh ingests and displays event ● Result: ✅ Event appeared in Wazuh dashboard within 6 minutes (next polling cycle) ● Evidence: See Appendix E - Screenshot E11 (CloudTrail event in Wazuh showing CreateBucket API call) 
+Test 2: GuardDuty → Wazuh Flow 
+● Action: Simulated GuardDuty finding using sample finding generator 
+● Expected: GuardDuty finding → EventBridge → Lambda → Wazuh API → Alert in Wazuh ● Result: ✅ Alert appeared in Wazuh dashboard within 2 minutes 
+● Evidence: See Appendix E - Screenshot E12 (GuardDuty finding in Wazuh with severity Level 10) 
+Test 3: ECS Logs → CloudWatch → Datadog Flow 
+● Action: Deployed API container to ECS; made API requests 
+● Expected: Container logs → CloudWatch Logs → Datadog agent → Datadog dashboard ● Result: ✅ Logs appeared in Datadog within 30 seconds 
+● Evidence: See Appendix E - Screenshot E13 (API logs in Datadog) 
+5) �� Deployment Evidence 
+IaC Deployment Logs 
+Terraform Apply Output: 
+None 
+$ terraform apply -auto-approve  
+  
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:  
+ + create  
+  
+Terraform will perform the following actions:  
+  
+ # module.vpc.aws_vpc.main will be created 
+ + resource "aws_vpc" "main" {  
+ + arn = (known after apply)  
+ + cidr_block = "10.0.0.0/16"  
+ + enable_dns_hostnames = true  
+ + enable_dns_support = true  
+ + id = (known after apply)  
+ + tags = {  
+ + "Environment" = "prod"  
+ + "ManagedBy" = "Terraform"  
+ + "Name" = "cloudguardians-prod-vpc"  
+ + "Project" = "CloudGuardians"  
+ }  
+ }  
+  
+ # ... (output truncated for brevity)  
+  
+Plan: 47 to add, 0 to change, 0 to destroy.  
+  
+module.vpc.aws_vpc.main: Creating...  
+module.vpc.aws_vpc.main: Creation complete after 3s [id=vpc-0a1b2c3d4e5f6g7h8]  module.vpc.aws_internet_gateway.main: Creating...  
+module.vpc.aws_subnet.public[0]: Creating...  
+module.vpc.aws_subnet.public[1]: Creating...  
+module.vpc.aws_subnet.private[0]: Creating...  
+module.vpc.aws_subnet.private[1]: Creating...  
+  
+... (output continues)  
+  
+Apply complete! Resources: 47 added, 0 changed, 0 destroyed.  
+  
+Outputs:  
+  
+vpc_id = "vpc-0a1b2c3d4e5f6g7h8"  
+public_subnet_ids = [  
+ "subnet-0a1b2c3d4e5f6g7h8",  
+ "subnet-1a2b3c4d5e6f7g8h9", 
+]  
+private_subnet_ids = [  
+ "subnet-2a3b4c5d6e7f8g9h0",  
+ "subnet-3a4b5c6d7e8f9g0h1",  
+]  
+ecs_cluster_name = "devsecops-prod-cluster"  
+Evidence: 
+● See Appendix F - Screenshot F1 (full terraform apply output) 
+● See Appendix F - Screenshot F2 (terraform state list showing all resources) CI/CD Pipeline Runs 
+Pipeline Execution #12 (Successful): 
+● Trigger: Commit a7f3c21 - "feat: add health check endpoint" 
+● Duration: 8 minutes 34 seconds 
+● Stages: 
+○ ✅ Source: 12 seconds 
+○ ✅ Build: 2 minutes 18 seconds 
+○ ✅ Test: 1 minute 45 seconds (Coverage: 84%) 
+○ ✅ Security Scan: 3 minutes 2 seconds (0 HIGH/CRITICAL findings) 
+○ ✅ Deploy: 1 minute 17 seconds (Blue/green deployment successful) ● Evidence: See Appendix F - Screenshot F3 (pipeline execution), F4 (stage details) 
+Pipeline Execution #11 (Failed at Security Scan): 
+● Trigger: Commit b2e4d19 - "feat: add user authentication" 
+● Duration: 6 minutes 8 seconds (stopped at Security Scan) 
+● Failure Reason: Trivy detected 2 HIGH vulnerabilities in base image 
+● Resolution: Updated Dockerfile to use patched base image; re-ran pipeline (execution #12) 
+● Evidence: See Appendix F - Screenshot F5 (failed pipeline), F6 (Trivy scan results showing CVEs) 
+AWS Console Evidence
+VPC Resources: 
+● See Appendix F - Screenshot F7 (VPC dashboard showing cloudguardians-prod-vpc) ● See Appendix F - Screenshot F8 (Subnets: 2 public, 2 private, 2 database) ● See Appendix F - Screenshot F9 (Route tables with IGW and NAT Gateway routes) ● See Appendix F - Screenshot F10 (Security groups with least-privilege rules) 
+IAM Resources: 
+● See Appendix F - Screenshot F11 (IAM roles list showing 12 roles) 
+● See Appendix F - Screenshot F12 (Sample role policy: devsecops-pipeline-role) ECS Resources: 
+● See Appendix F - Screenshot F13 (ECS cluster: devsecops-prod-cluster) ● See Appendix F - Screenshot F14 (ECS service: api-service with 2 running tasks) ● See Appendix F - Screenshot F15 (Task definition showing container config and resource limits) 
+ECR Resources: 
+● See Appendix F - Screenshot F16 (ECR repository: devsecops-api with 8 images) ● See Appendix F - Screenshot F17 (Image scan results: 0 CRITICAL, 1 HIGH, 5 MEDIUM vulnerabilities) 
+S3 Resources: 
+● See Appendix F - Screenshot F18 (S3 buckets list showing 5 buckets) 
+● See Appendix F - Screenshot F19 (CloudTrail logs bucket with SSE-KMS encryption enabled) 
+● See Appendix F - Screenshot F20 (Sample CloudTrail log file in S3) 
+RDS Resources: 
+● See Appendix F - Screenshot F21 (RDS instance: cloudguardians-prod-db, PostgreSQL 15.4) 
+● See Appendix F - Screenshot F22 (RDS encryption enabled, automated backups configured) 
+Service Validation 
+GuardDuty Findings:
+● Status: Active with 3 findings (all LOW severity from initial setup) 
+● Sample Finding: "Unusual API call from known malicious IP" (test finding) ● Evidence: See Appendix F - Screenshot F23 (GuardDuty findings list) 
+CloudTrail Logs in S3: 
+● Status: Logs being delivered every 5 minutes 
+● Validation: Downloaded sample log file; verified JSON structure and encryption ● Evidence: See Appendix F - Screenshot F24 (CloudTrail log file content showing API events) 
+Security Hub Dashboard: 
+● Status: Aggregating findings from GuardDuty, Config, IAM Access Analyzer ● Findings Summary: 
+○ CRITICAL: 0 
+○ HIGH: 2 (S3 bucket without versioning, IAM user without MFA) 
+○ MEDIUM: 8 
+○ LOW: 15 
+● Evidence: See Appendix F - Screenshot F25 (Security Hub summary dashboard) Wazuh Agent Reporting: 
+● Status: 3 agents reporting (1 Wazuh manager, 2 ECS tasks) 
+● Agent Health: All active, last seen < 1 minute ago 
+● Evidence: See Appendix F - Screenshot F26 (Wazuh agents list showing active status) Datadog Metrics: 
+● Status: Receiving metrics from ECS cluster, RDS, ALB 
+● Sample Metrics: 
+○ ECS CPU utilization: 12% average 
+○ ECS memory utilization: 35% average 
+○ API response time: 145ms p95 
+○ ALB request count: 1,247 requests/hour 
+● Evidence: See Appendix F - Screenshot F27 (Datadog ECS dashboard with metrics) Video Walkthrough 
+Sample Video: CloudGuardians_Sprint2_Deployment_Walkthrough.mp4 (4 minutes 32 seconds)
+Contents: 
+1. Terraform apply showing infrastructure creation (0:00 - 1:30) 
+2. AWS Console tour of deployed resources (1:30 - 2:45) 
+3. CodePipeline execution and deployment (2:45 - 3:30) 
+4. Wazuh dashboard showing CloudTrail events (3:30 - 4:00) 
+5. API health check endpoint test (4:00 - 4:32) 
+Link: [Video uploaded to Appendix G] 
+6) �� End-to-End Workflow Validation 
+Workflow Description 
+DevSecOps Pipeline Workflow: 
+Our end-to-end workflow demonstrates a complete DevSecOps pipeline from code commit to production deployment with automated security scanning and monitoring: 
+1. Developer commits code to GitHub main branch 
+2. GitHub webhook triggers AWS CodePipeline 
+3. CodePipeline pulls source code from GitHub 
+4. CodeBuild builds Docker container image 
+5. Automated tests run (unit tests, integration tests) 
+6. Security scans execute in parallel (Trivy, Checkov, TruffleHog, Bandit) 7. If all checks pass, image pushed to ECR 
+8. CodeDeploy performs blue/green deployment to ECS Fargate 
+9. Health checks validate new deployment 
+10. Traffic shifted from old tasks to new tasks 
+11. CloudTrail logs all API calls throughout the process 
+12. GuardDuty monitors for threats 
+13. Wazuh ingests CloudTrail logs and displays events 
+14. Datadog monitors application performance 
+15. Slack notification sent to team on deployment success 
+Test Cases 
+Test Case 1: Successful Pipeline Execution with Clean Security Scan
+Objective: Validate that a code commit with no security issues successfully deploys to production 
+Steps: 
+1. Create feature branch feature/health-check-endpoint 
+2. Add new /health endpoint to API code 
+3. Write unit tests for new endpoint (coverage: 95%) 
+4. Commit and push to GitHub 
+5. Merge pull request to main branch 
+6. Observe pipeline execution 
+Expected Results: 
+● Pipeline triggered within 30 seconds of merge 
+● Build stage completes successfully 
+● All tests pass with >80% coverage 
+● Security scans return 0 HIGH/CRITICAL findings 
+● Image pushed to ECR with scan results 
+● Blue/green deployment completes successfully 
+● New tasks pass health checks 
+● Traffic shifted to new tasks 
+● Old tasks terminated 
+● Slack notification received 
+Actual Results: 
+● ✅ Pipeline triggered in 18 seconds 
+● ✅ Build completed in 2 minutes 18 seconds 
+● ✅ Tests passed with 84% coverage 
+● ✅ Security scans: 0 CRITICAL, 0 HIGH, 3 MEDIUM, 12 LOW findings ● ✅ Image pushed to ECR (tag: a7f3c21) 
+● ✅ Deployment completed in 1 minute 17 seconds 
+● ✅ Health checks passed (5/5 successful) 
+● ✅ Traffic shifted successfully 
+● ✅ Old tasks terminated after 10-minute bake time 
+● ✅ Slack notification received: "Deployment successful for commit a7f3c21" Evidence:
+● See Appendix H - Screenshot H1 (GitHub PR merged) 
+● See Appendix H - Screenshot H2 (Pipeline execution success) 
+● See Appendix H - Screenshot H3 (Security scan results) 
+● See Appendix H - Screenshot H4 (ECS deployment showing blue/green cutover) ● See Appendix H - Screenshot H5 (Slack notification) 
+Status: ✅ PASSED 
+Test Case 2: Pipeline Failure Due to High-Severity Vulnerability 
+Objective: Validate that security gates block deployment when HIGH/CRITICAL vulnerabilities detected 
+Steps: 
+1. Create feature branch feature/add-dependencies 
+2. Add Python package with known vulnerability to requirements.txt (e.g., django==2.2.0 with CVE-2019-14234) 
+3. Commit and push to GitHub 
+4. Merge pull request to main branch 
+5. Observe pipeline execution 
+Expected Results: 
+● Pipeline triggered within 30 seconds 
+● Build stage completes successfully 
+● Test stage completes successfully 
+● Security scan stage detects HIGH vulnerability in dependencies 
+● Trivy scan fails with exit code 1 
+● Pipeline stops at Security Scan stage 
+● No deployment occurs 
+● Slack notification sent with failure details 
+● Security scan report uploaded to S3 
+Actual Results: 
+● ✅ Pipeline triggered in 22 seconds 
+● ✅ Build completed successfully 
+● ✅ Tests passed
+● ✅ Trivy detected 1 CRITICAL, 2 HIGH vulnerabilities in dependencies ● ✅ Pipeline failed at Security Scan stage 
+● ✅ No deployment occurred (ECS tasks unchanged) 
+● ✅ Slack notification: "Pipeline failed: HIGH severity vulnerabilities detected. See S3 report." 
+● ✅ Scan report uploaded to 
+s3://cloudguardians-security-reports/trivy/20250415/trivy-report-b2e4d19.sarif Resolution: 
+● Updated requirements.txt to use patched version (django==3.2.18) ● Re-ran pipeline (execution #12) 
+● Pipeline passed all stages and deployed successfully 
+Evidence: 
+● See Appendix H - Screenshot H6 (Pipeline failed at Security Scan) 
+● See Appendix H - Screenshot H7 (Trivy scan results showing CVE-2019-14234) ● See Appendix H - Screenshot H8 (Slack failure notification) 
+● See Appendix H - Screenshot H9 (S3 security report) 
+Status: ✅ PASSED (Security gate working as intended) 
+Test Case 3: CloudTrail → Wazuh Integration 
+Objective: Validate that CloudTrail events are ingested by Wazuh and displayed in dashboard Steps: 
+1. Perform AWS API action via Console (create S3 bucket named 
+test-bucket-cloudguardians) 
+2. Wait for CloudTrail to log event to S3 (up to 15 minutes) 
+3. Wait for Wazuh to poll S3 and ingest logs (5-minute polling interval) 4. Search for event in Wazuh dashboard 
+Expected Results: 
+● CloudTrail logs CreateBucket API call within 15 minutes 
+● Log file delivered to S3 bucket cloudguardians-cloudtrail-logs 
+● Wazuh polls S3 within next 5-minute cycle
+● Event parsed and indexed in Wazuh 
+● Event visible in Wazuh dashboard with details: 
+○ Event name: CreateBucket 
+○ User identity: IAM user or role 
+○ Source IP address 
+○ Timestamp 
+○ Request parameters (bucket name) 
+Actual Results: 
+● ✅ CloudTrail logged event at 2025-04-15 14:23:47 UTC 
+● ✅ Log file delivered to S3 at 14:28:52 UTC (5 minutes later) 
+● ✅ Wazuh ingested logs at 14:30:00 UTC (next polling cycle) 
+● ✅ Event visible in Wazuh dashboard: 
+○ Event: CreateBucket 
+○ User: arn:aws:iam::123456789012:user/priya.patel 
+○ Source IP: 203.0.113.42 
+○ Timestamp: 2025-04-15T14:23:47Z 
+○ Bucket: test-bucket-cloudguardians 
+○ Region: us-east-1 
+Evidence: 
+● See Appendix H - Screenshot H10 (S3 bucket creation in AWS Console) ● See Appendix H - Screenshot H11 (CloudTrail event in S3 log file) 
+● See Appendix H - Screenshot H12 (Wazuh dashboard showing CreateBucket event with full details) 
+Status: ✅ PASSED 
+Issues Encountered & Resolutions 
+Issue 1: Wazuh Agent Installation Failed on Amazon Linux 2023 
+Description: 
+When attempting to install Wazuh agent 4.5.2 on Amazon Linux 2023 (for future EC2 monitoring), installation failed with dependency errors. 
+Error Message:
+None 
+Error: Package: wazuh-agent-4.5.2-1.x86_64 (wazuh)  
+ Requires: libssl.so.1.1()(64bit)  
+Error: Package: wazuh-agent-4.5.2-1.x86_64 (wazuh)  
+ Requires: libcrypto.so.1.1()(64bit)  
+Root Cause: 
+Amazon Linux 2023 uses OpenSSL 3.0, but Wazuh agent 4.5.2 was compiled against OpenSSL 1.1. 
+Resolution: 
+● Upgraded Wazuh manager and agents to version 4.7.2 (released March 2025) ● Version 4.7.2 includes support for OpenSSL 3.0 
+● Successfully installed agent on Amazon Linux 2023 test instance 
+● Updated documentation to specify Wazuh 4.7.2+ for AL2023 compatibility Status: ✅ RESOLVED 
+Evidence: See Appendix H - Screenshot H13 (successful Wazuh agent installation on AL2023) 
+Issue 2: Terraform State Lock Conflict 
+Description: 
+Multiple team members attempted to run terraform apply simultaneously, resulting in state lock conflicts. 
+Error Message: 
+None 
+Error: Error acquiring the state lock  
+  
+Error message: ConditionalCheckFailedException: The conditional request failed  Lock Info:  
+ ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890  
+ Path: cloudguardians-terraform-state/prod/terraform.tfstate 
+ Operation: OperationTypeApply  
+ Who: marcus.johnson@example.com  
+ Version: 1.7.5  
+ Created: 2025-04-14 16:42:18.123456789 +0000 UTC  
+Root Cause: 
+Team members were not coordinating Terraform runs; no process for acquiring "lock" before making infrastructure changes. 
+Resolution: 
+● Implemented team process: Post in Slack #capstone-infra channel before running Terraform 
+● Created Jira ticket for each infrastructure change 
+● Documented Terraform workflow in team wiki 
+● Planned for Sprint 3: Implement Terraform Cloud for better collaboration and remote state management 
+Status: ✅ RESOLVED (process improvement) 
+Evidence: See Appendix H - Screenshot H14 (Slack message template for Terraform runs) 
+Issue 3: ECR Image Scan Showing False Positive 
+Description: 
+ECR scan reported HIGH vulnerability (CVE-2024-1234) in base image python:3.11-slim, but CVE was already patched in the version we're using. 
+Investigation: 
+● Reviewed CVE details on NVD (National Vulnerability Database) 
+● Confirmed our Python version (3.11.8) includes the patch 
+● ECR scan database was outdated (last updated 7 days ago) 
+Resolution: 
+● Documented false positive in Jira ticket with evidence
+● Added exception to security scan policy for this specific CVE 
+● Monitored for ECR scan database update (updated 3 days later; CVE no longer flagged) ● Removed exception after scan database update 
+Status: ✅ RESOLVED 
+Evidence: See Appendix H - Screenshot H15 (CVE details showing patch version), H16 (ECR scan before/after database update) 
+7) �� Team Member Contributions (Sprint 2) 
+Sarah Chen - Team Lead & Project Manager 
+Role: Coordinate sprint goals, manage backlog, facilitate team communication, remove blockers Contributions: 
+1. Sprint Planning & Coordination: 
+○ Facilitated Sprint 2 planning meeting; defined sprint goals and acceptance criteria 
+○ Created 23 Jira tickets for Sprint 2 deliverables; assigned to team members ○ Conducted daily stand-ups (async via Slack); tracked progress and blockers ○ Organized mid-sprint check-in meeting to address Terraform state lock issue 2. Stakeholder Communication: 
+○ Prepared Sprint 1 retrospective summary and shared with instructor ○ Coordinated with instructor for AWS account access and budget increase request ○ Documented team decisions in Confluence wiki 
+3. Quality Assurance: 
+○ Reviewed all pull requests for completeness and alignment with acceptance criteria 
+○ Conducted final review of Sprint 2 submission document 
+○ Ensured all sections meet rubric requirements 
+4. Risk Management: 
+○ Identified risk: Wazuh agent compatibility issue; escalated to Priya for resolution ○ Monitored AWS costs daily; alerted team when approaching $100 threshold ○ Created contingency plan for Splunk integration delay (moved to Sprint 3) 
+Collaboration Evidence:
+● Jira board: 23 tickets created, 21 completed, 2 moved to Sprint 3 
+● Slack: 47 messages in #capstone-general coordinating team activities ● GitHub: 8 PR reviews with detailed feedback 
+Evidence: See Appendix I - Screenshot I1 (Jira board Sprint 2), I2 (Slack stand-up messages), I3 (PR review comments) 
+Marcus Johnson - Infrastructure Engineer 
+Role: Design and deploy AWS infrastructure via Terraform; configure networking and IAM Contributions: 
+1. VPC & Networking (Jira Tickets: CAP-12, CAP-13, CAP-14): 
+○ Designed VPC architecture with public, private, and database subnets across 2 AZs 
+○ Authored Terraform VPC module (modules/vpc/) with 347 lines of code ○ Configured route tables, Internet Gateway, NAT Gateway, VPC Flow Logs ○ Implemented security groups with least-privilege rules for ALB, ECS, RDS, Wazuh ○ GitHub: PR #27 (VPC module), PR #28 (Security groups) 
+2. IAM Roles & Policies (Jira Tickets: CAP-15, CAP-16): 
+○ Created 12 IAM roles with least-privilege policies 
+○ Implemented cross-account role for future multi-account setup 
+○ Configured IAM password policy and MFA enforcement 
+○ GitHub: PR #29 (IAM module) 
+3. S3 & Logging (Jira Ticket: CAP-17): 
+○ Created 5 S3 buckets with encryption, versioning, and lifecycle policies ○ Configured CloudTrail organization trail with S3 delivery and KMS encryption ○ Set up VPC Flow Logs to CloudWatch Logs 
+○ GitHub: PR #30 (S3 and logging configuration) 
+4. Terraform State Management: 
+○ Configured S3 backend for Terraform state with DynamoDB locking 
+○ Implemented state file encryption with KMS 
+○ Documented Terraform workflow in team wiki 
+5. Documentation: 
+○ Wrote README for VPC module with usage examples 
+○ Created network diagram showing subnet layout and routing 
+○ Documented security group rules in spreadsheet
+Metrics: 
+● Lines of Code: 847 lines of Terraform (HCL) 
+● Pull Requests: 4 PRs merged (27, 28, 29, 30) 
+● Commits: 23 commits 
+● Resources Created: 47 AWS resources via Terraform 
+Collaboration Evidence: 
+● Pair-programmed with David on ECS networking configuration (Slack thread 4/12) ● Reviewed Priya's Wazuh security group rules (PR #35 review) 
+● Unblocked Elena on RDS connection issue (Slack DM 4/14) 
+Evidence: See Appendix I - Screenshot I4 (GitHub commit history), I5 (Terraform module structure), I6 (VPC diagram) 
+Priya Patel - Security Analyst & SIEM Engineer 
+Role: Configure security services (GuardDuty, Security Hub, Config); deploy and integrate Wazuh Contributions: 
+1. AWS Security Services (Jira Tickets: CAP-18, CAP-19, CAP-20): 
+○ Enabled GuardDuty in us-east-1 with S3 and EKS protection 
+○ Configured Security Hub with CIS and Foundational Security standards ○ Enabled AWS Config with 5 managed rules for compliance monitoring ○ Created EventBridge rules for GuardDuty findings → SNS → Slack 
+○ GitHub: PR #31 (Security services Terraform module) 
+2. Wazuh Deployment (Jira Tickets: CAP-21, CAP-22, CAP-23): 
+○ Deployed Wazuh manager 4.7.2 on EC2 t3.medium in private subnet 
+○ Configured CloudTrail log ingestion from S3 (5-minute polling) 
+○ Integrated GuardDuty findings via Lambda function forwarding to Wazuh API ○ Deployed Wazuh agent sidecar containers to ECS tasks 
+○ Configured FIM for /etc, /bin, /app/config directories 
+○ Enabled CIS Ubuntu 22.04 and Docker benchmarks 
+○ Enabled PCI DSS v4.0 compliance module 
+○ GitHub: PR #32 (Wazuh EC2 Terraform), PR #33 (Lambda GuardDuty-to-Wazuh), PR #34 (ECS task definition with Wazuh agent) 
+3. Wazuh Configuration & Testing:
+○ Wrote custom Wazuh rules for CloudTrail event detection (unauthorized API calls, root account usage) 
+○ Configured alert levels and forwarding to Security Hub 
+○ Tested CloudTrail → S3 → Wazuh flow (Test Case 3) 
+○ Tested GuardDuty → Lambda → Wazuh flow 
+○ Achieved 87% CIS compliance score (baseline for Sprint 2) 
+4. Security Documentation: 
+○ Created security architecture diagram showing data flows 
+○ Documented Wazuh configuration in team wiki 
+○ Wrote runbook for Wazuh agent deployment 
+5. Issue Resolution: 
+○ Resolved Wazuh agent compatibility issue with Amazon Linux 2023 (upgraded to 4.7.2) 
+○ Troubleshot Lambda function timeout issue (increased timeout from 3s to 30s) Metrics: 
+● Lines of Code: 423 lines (Terraform + Python Lambda) 
+● Pull Requests: 4 PRs merged (31, 32, 33, 34) 
+● Commits: 19 commits 
+● Wazuh Rules Created: 8 custom detection rules 
+● Test Cases Executed: 3 (all passed) 
+Collaboration Evidence: 
+● Collaborated with Marcus on security group rules for Wazuh (PR #35) ● Helped David troubleshoot ECS task IAM permissions for Wazuh agent (Slack thread 4/13) 
+● Presented Wazuh demo to team during mid-sprint check-in 
+Evidence: See Appendix I - Screenshot I7 (Wazuh dashboard), I8 (GitHub commits), I9 (Custom Wazuh rules) 
+David Kim - DevSecOps Engineer 
+Role: Build CI/CD pipeline; configure CodePipeline, CodeBuild, CodeDeploy; integrate security scanning 
+Contributions:
+1. CI/CD Pipeline (Jira Tickets: CAP-24, CAP-25, CAP-26): 
+○ Designed 5-stage pipeline architecture (Source, Build, Test, Security Scan, Deploy) ○ Implemented CodePipeline with GitHub integration via CodeStar Connection ○ Created 4 CodeBuild projects with custom buildspec files 
+○ Configured CodeDeploy for blue/green deployment to ECS Fargate 
+○ GitHub: PR #36 (Pipeline Terraform), PR #37 (Buildspec files) 
+2. Security Scanning Integration (Jira Tickets: CAP-27, CAP-28): 
+○ Integrated Trivy for container vulnerability scanning (fail on HIGH/CRITICAL) ○ Integrated Checkov for IaC policy validation 
+○ Integrated TruffleHog for secret detection in git history 
+○ Integrated Bandit for Python SAST 
+○ Configured parallel execution of security scans to reduce pipeline time ○ Set up S3 upload for security scan reports 
+○ GitHub: PR #38 (Security scan buildspec) 
+3. ECS & ECR Configuration (Jira Tickets: CAP-29, CAP-30): 
+○ Created ECS Fargate cluster and service with 2 tasks for HA 
+○ Configured ECR repository with scan-on-push and lifecycle policies 
+○ Wrote ECS task definition with resource limits and logging 
+○ Configured ALB target group and health checks 
+○ GitHub: PR #39 (ECS Terraform module) 
+4. Pipeline Testing & Optimization: 
+○ Executed 12 pipeline runs to test and refine stages 
+○ Optimized build time by implementing Docker layer caching (reduced from 4m to 2m) 
+○ Configured SNS notifications for pipeline success/failure 
+○ Created Slack webhook integration for deployment notifications 
+5. Documentation: 
+○ Created pipeline architecture diagram 
+○ Documented buildspec files with inline comments 
+○ Wrote troubleshooting guide for common pipeline failures 
+David Kim - DevSecOps Engineer (continued) 
+● Lines of Code: 612 (Terraform, YAML buildspecs, JSON task defs) 
+● Pull Requests: 5 merged (36–39, 41), 1 reviewed 
+● Commits: 26 commits 
+● Pipeline Runs Executed: 12 (10 success, 2 expected failures for gate testing) ● Avg Pipeline Duration: 8m 12s (down from 12m 05s pre-optimizations) ● Vulnerabilities Blocked by Gates: 1 CRITICAL, 3 HIGH
+● MTTR for Failed Runs: 31 minutes (median) 
+Evidence: Appendix I - Screenshot I10 (pipeline diagram), I11 (buildspec repo files), I12 (SNS/Slack notifications) 
+Elena Rodriguez - Developer 
+Role: Implement application features, write tests, containerize app, collaborate on deployment validation 
+Contributions: 
+1. Application Features 
+● Implemented /health and /metrics endpoints; added structured JSON logging ● Added database migration scripts and connection pooling 
+● Built minimal API with input validation and error handling 
+2. Testing 
+● Added unit and integration tests (pytest) with DB test harness 
+● Achieved and maintained ≥80% coverage gate (current: 84%) 
+3. Containerization 
+● Authored Dockerfile with multi-stage build and non-root user 
+● Implemented runtime config via env vars and Parameter Store 
+4. Collaboration 
+● Paired with David to validate ECS service health checks 
+● Worked with Priya to ensure app logs are Wazuh-parsable 
+Metrics: 
+● Lines of Code: 1,148 (Python app + tests) 
+● Test Coverage: 84% (pytest-cov) 
+● PRs Merged: 6 (42–47) 
+● Commits: 24 
+● Defects Introduced/Resolved in Sprint: 2 introduced, 2 resolved before deploy ● Container Image Size: 118 MB (down from 256 MB after multi-stage build) 
+Evidence: Appendix I - Screenshot I13 (coverage report), I14 (Dockerfile diff), I15 (API swagger screenshot)
+James Williams - Documentation Owner 
+Role: Owns sprint documentation, submission assembly, diagrams, and stakeholder-ready artifacts 
+Contributions: 
+1. Documentation Set 
+● Authored Sprint 2 report (this document) and executive summary 
+● Created runbooks: “How to run Terraform,” “How to rerun pipeline,” “How to read Wazuh alerts” 
+● Maintained architecture decision records (ADRs) for Terraform vs. CloudFormation, ECS vs. EKS, Wazuh integration approach 
+2. Diagrams and Visuals 
+● Produced updated topology and CI/CD pipeline diagrams 
+● Assembled evidence appendix with consistent naming and captions 3. Quality Control 
+● Managed QA pass against Quality Checklist 
+● Ensured rubric mapping table covers each criterion with evidence link Metrics: 
+● Pages Authored/Edited: 27 
+● Diagrams Produced: 4 (topology, pipeline, security data flows, alerting) ● ADRs Created: 3 
+● Evidence Items Curated: 58 screenshots + 2 short clips 
+● Review Cycles Coordinated: 3 
+Evidence: Appendix I - Screenshot I16 (ADR index), I17 (diagram source files), I18 (quality checklist with pass/fail) 
+Cross-Team Metrics (Sprint 2) 
+● Total PRs Merged: 25 
+● Total Commits: 112 
+● Terraform Resources Managed: 47 
+● Pipeline Executions: 12 (10 successful, 2 blocked by security gate) 
+● Mean Lead Time (commit to prod): 10m 05s 
+● Security Findings Addressed:
+○ ECR Scan: 1 CRITICAL, 3 HIGH resolved or exceptioned with approval ○ Checkov: 5 HIGH policy violations resolved (S3 encryption, SG tightening, password policy) 
+● Alerts 
+○ GuardDuty High/Critical: 0 real, 1 simulated test handled 
+○ CloudWatch Alarms Triggered: 2 (ECS memory spike test; ALB 5xx during blue/green bake) 
+○ Slack Notifications: 14 (deploys, failures, alarms) 
+● Cost Monitors: 3 billing thresholds configured; no threshold breached 
+Evidence: Appendix I - Screenshot I19 (GitHub analytics), I20 (Checkov report diff), I21 (GuardDuty test alert), I22 (CloudWatch alarm history) 
+Rubric Mapping Summary (Sprint 2) 
+● IaC completeness and correctness: Met (Terraform modules, S3 backend, locking) ● Updated topology and diagrams: Met (detailed AZs, subnets, data flows) ● CI/CD with security gates: Met (tests, Trivy, Checkov, TruffleHog, Bandit; enforced) ● AWS security services enabled and validated: Met (GuardDuty, Security Hub, CloudTrail, Config) 
+● Third-party integration baseline: Met (Wazuh production-ready; Splunk staged) ● Evidence and validation: Met (screenshots, logs, pipeline runs, test cases) ● Team roles and individual contributions: Met (metrics, PRs, commits, owned deliverables)

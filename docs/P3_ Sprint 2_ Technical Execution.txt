@@ -1,0 +1,282 @@
+﻿P3: Sprint 2: Technical Architecture & Execution
+* Due No Due Date
+*  Points 100
+*  Submitting a file upload
+🚀 Capstone Project  • Sprint 2 (Technical Architecture & Execution - Core Architecture Build)
+Due: [Insert Date] • Points: 30 • Submission: Group (one file) • Applies to: All teams
+Team and Team Name: (e.g., DevSecOps | API 1, Security Lab, SOC, SIEM-as-a-Service, KMS)
+Note: You can reuse this template.
+🚀 Overview
+In Sprint 2 (Core Architecture Build) your team moves from planning to execution. By the end of this sprint, you should have the core engineering backbone in place: infrastructure provisioned via code, networking configured, and an initial CI/CD pipeline operating with basic security gates.
+Your package includes: Infrastructure as Code (IaC), Updated Topology & Architecture Diagrams, CI/CD Pipeline Implementation, AWS & Third-Party Tool Integration, Deployment Evidence, End-to-End Workflow Validation, and Team Member Contributions.
+Use this Universal Capstone Project Rubric & Deliverable as your guideline when submitting your Sprints
+Links to an external site.
+📦 Submission Package (one file)
+* 📄 Cover Page: Team Name, Project Title, Members (roles), Course, Date
+* 📄 Sections 1–7 (below)
+* 📎 Appendix: IaC code snippets, screenshots, logs, diagrams, references
+Accepted formats: PDF or Word (.docx) or Google Doc (.gdoc)
+Here's a SAMPLE SUBMISSION FOR SPRINT 2
+Links to an external site.
+✅ Quality Checklist (include this page in your submission)
+* All infrastructure provisioned via IaC (Terraform or CloudFormation) 
+* IaC code is version-controlled in GitHub with clear commit history
+* Updated topology diagram shows VPCs, subnets, IAM roles, services, and data/log flows
+* Design aligns with AWS Well-Architected principles
+* CI/CD pipeline is functional and documented (buildspecs/workflows, stages)
+* AWS services and third-party tools (Wazuh, Splunk, etc.) integrated and configured
+* Deployment evidence provided (screenshots, logs, video snippets)
+* End-to-end workflow validated with test cases and results
+* Team member contributions for Sprint 2 clearly documented
+ 
+1. 🧱 Infrastructure as Code (IaC)
+Definition: All AWS infrastructure must be provisioned using Terraform or CloudFormation, not manual console work. Code must be in GitHub.
+Complete the following:
+* IaC Tool Selection: State Terraform or CloudFormation and justify the choice.
+* GitHub Repository: Provide URL; confirm meaningful commit messages and branches.
+* Core Infrastructure Provisioned (this sprint):
+   * Networking: VPC, public/private subnets, route tables, IGW, NAT Gateway, Transit Gateway (multi-account)
+   * IAM: Least-privilege roles, policies, service principals, cross-account roles
+   * Compute/Storage: EC2/ECS/EKS, S3, RDS, DynamoDB, Lambda (if applicable)
+   * Security/Logging: GuardDuty, Security Hub, CloudTrail, Config, Macie, Inspector, Systems Manager
+   * Project-Specific Services:
+      * DevSecOps: CodePipeline, CodeBuild, CodeDeploy, ECR, ECS/EKS, Secrets Manager, Parameter Store
+      * Security Lab: EC2 (vulnerable instances), VPC (isolated lab environments), Lambda (auto-teardown), EventBridge (scheduling)
+      * SOC: CloudWatch, EventBridge, SNS, Lambda (alert routing), Step Functions (orchestration), OpenSearch Service
+      * SIEM: OpenSearch Service/Elasticsearch, Kinesis Data Firehose, S3 (log storage), Lambda (log parsing), Glue (ETL)
+      * KMS: KMS keys, Secrets Manager, Certificate Manager (ACM), CloudHSM (if applicable), S3 (encrypted buckets)
+* Code Structure: Describe modules, environments, naming and tagging conventions.
+* Appendix: Include representative IaC snippets (e.g., VPC module, IAM role, KMS key policy).
+* Screenshots of your environment
+Tip: Use modules and tags (Project, Environment, Owner, CostCenter) for clarity and cost tracking.
+ 
+2. 🌐 Updated Topology & Architecture Diagrams
+Definition: Provide detailed diagrams that evolve each sprint and align with the AWS Well-Architected Framework.
+Include:
+* Updated topology: VPCs, subnets/AZs, security groups/NACLs, IAM roles, services, data flows
+* CI/CD path: commit → build → test → deploy; show where scans run
+* Security controls: GuardDuty, CloudTrail, Security Hub, WAF, Macie, Inspector, logging to CloudWatch/OpenSearch/S3
+* Third-party integrations: Wazuh agents/manager, Splunk forwarders/indexers, cloud-native SIEM connectors
+* Project-Specific Components:
+   * DevSecOps: Show pipeline stages, container registry (ECR), orchestration (ECS/EKS), secrets flow
+   * Security Lab: Isolated VPCs per lab, bastion/jump hosts, auto-teardown Lambda triggers
+   * SOC: Multi-tenant log ingestion, alert routing (SNS/Lambda), analyst dashboard (OpenSearch/Grafana)
+   * SIEM: Log sources → Kinesis/Firehose → S3/OpenSearch → dashboards; Splunk HEC endpoints if applicable
+   * KMS: Key hierarchy, encryption at rest/in transit, certificate management, secret rotation flows
+* Well-Architected alignment: Briefly map to 2–3 pillars (e.g., Security, Reliability, Cost Optimization)
+* Changes since Sprint 1: Call out key evolutions
+Tools: diagrams.net (draw.io), Lucidchart, Canva, AWS Architecture Icons
+Tip: Label components clearly and use consistent color-coding for environments (Dev/Staging/Prod) and security zones.
+ 
+3. 🧪 CI/CD Pipeline Implementation
+Definition: Functional automated pipeline(s) that deploy infrastructure and/or applications.
+Complete the following:
+* Tool: Identify AWS CodePipeline, GitHub Actions, GitLab CI, Jenkins, or CircleCI and why chosen
+* Stages:
+   * Source (repo/branch/trigger)
+   * Build (linters, IaC validation: terraform fmt/validate, cfn-lint, Docker image build)
+   * Test (unit/integration, security scans: Checkov/tfsec/Trivy/Snyk/SAST/secret scanning with GitGuardian or TruffleHog)
+   * Deploy (Dev → Staging → Prod, or Dev only if staged rollout; blue/green or canary if applicable)
+   * Post-Deploy (smoke tests, notifications: Slack/email/PagerDuty)
+* Security Gates: Describe which checks block promotion (e.g., critical CVEs, policy violations, failed tests)
+* Project-Specific Pipeline Elements:
+   * DevSecOps: Container scanning (ECR scan, Trivy), DAST (OWASP ZAP), compliance checks (Open Policy Agent)
+   * Security Lab: IaC deployment of lab environments, automated vulnerability injection, scheduled teardown
+   * SOC: Deployment of detection rules, playbook updates, dashboard configurations
+   * SIEM: Log parser deployment, correlation rule updates, dashboard/alert config as code
+   * KMS: Key rotation automation, secret updates via Secrets Manager, certificate renewal via ACM
+* Config Files: Add buildspec.yml/workflows/Jenkinsfile to appendix
+* Pipeline Diagram: Visualize end-to-end flow with decision points
+Tip: Fail fast on quality/security violations. Use pipeline artifacts for traceability.
+ 
+4. 🔗 AWS & Third-Party Tool Integration
+Definition: Show how AWS security and platform services, plus third-party tools, are integrated.
+Complete the following:
+AWS Services configured this sprint and purpose:
+Core Security & Logging (All Projects):
+* IAM: Least-privilege roles/policies, MFA enforcement, cross-account access
+* GuardDuty: Enabled across accounts/regions, findings exported to Security Hub/S3
+* CloudTrail: Organization trail to S3 with SSE-KMS; CloudWatch Logs integration; Insights enabled
+* Security Hub: Aggregating findings; standards enabled (CIS, AWS Foundational, PCI DSS)
+* Config: Resource compliance tracking, config rules for drift detection
+* VPC Flow Logs: To CloudWatch Logs or S3/OpenSearch for network analysis
+* CloudWatch: Metrics, alarms, dashboards, log groups with retention policies
+* SNS/SQS: Alert routing, event-driven workflows
+Project-Specific AWS Services:
+DevSecOps:
+* CodePipeline/CodeBuild/CodeDeploy: CI/CD automation
+* ECR: Container image registry with vulnerability scanning
+* ECS/EKS: Container orchestration with Fargate or EC2
+* Secrets Manager/Parameter Store: Secure credential storage and rotation
+* Systems Manager: Patch management, session manager (no SSH keys)
+* WAF: API/application protection with managed rules
+Security Lab:
+* EC2: Vulnerable instances (DVWA, Metasploitable, custom challenges)
+* Lambda: Auto-teardown functions, scoring engines, hint systems
+* EventBridge: Scheduled lab lifecycle management
+* S3: Challenge files, student submissions, lab artifacts
+* Cognito: Student authentication and lab access control
+* VPC Peering/Transit Gateway: Multi-lab isolation and connectivity
+SOC (Security Operations Center):
+* OpenSearch Service: Centralized log analysis and visualization
+* EventBridge: Event routing from GuardDuty, Security Hub, CloudTrail
+* Lambda: Alert enrichment, automated triage, ticket creation
+* Step Functions: Incident response orchestration workflows
+* SNS/PagerDuty: Analyst alerting and escalation
+* Athena: Ad-hoc querying of S3 logs
+* QuickSight: Executive dashboards and reporting
+SIEM (Security Information & Event Management):
+* OpenSearch Service/Elasticsearch: Log indexing, search, and correlation
+* Kinesis Data Firehose: Real-time log streaming from multiple sources
+* S3: Long-term log retention with lifecycle policies and Glacier archival
+* Lambda: Log normalization, parsing, enrichment
+* Glue: ETL jobs for log transformation
+* Lake Formation: Data lake security and governance (multi-tenant)
+* CloudWatch Logs Subscriptions: Real-time log forwarding
+KMS (Key Management Service):
+* KMS: Customer-managed keys (CMKs) with key policies and grants
+* Secrets Manager: Automatic secret rotation for RDS, API keys
+* Certificate Manager (ACM): SSL/TLS certificate provisioning and renewal
+* CloudHSM: Hardware security module for high-assurance key storage (if applicable)
+* S3: Bucket encryption (SSE-KMS), bucket policies enforcing encryption
+* EBS/RDS/DynamoDB: Encryption at rest with KMS keys
+* Systems Manager Parameter Store: Encrypted parameters with KMS
+Third-Party Tools Integration:
+Wazuh (Host-based IDS/IPS, SIEM, Compliance):
+* Deployment: Wazuh manager on EC2 or ECS; agents on monitored instances
+* Integration: CloudTrail logs → S3 → Wazuh; GuardDuty findings → Wazuh API
+* Use Cases: File integrity monitoring (FIM), rootkit detection, CIS benchmarks, PCI DSS compliance
+* Configuration: Agent deployment via Systems Manager or user data; manager dashboard accessible via ALB
+* Evidence: Screenshots of Wazuh dashboard showing agents, alerts, compliance scores
+Splunk (Enterprise SIEM & Log Analytics):
+* Deployment: Splunk Enterprise on EC2 or Splunk Cloud; forwarders on log sources
+* Integration: CloudTrail/VPC Flow Logs/GuardDuty → S3 → Splunk S3 input or Kinesis Firehose → Splunk HEC
+* Add-ons: Splunk Add-on for AWS, Splunk App for AWS Security, TA-GuardDuty
+* Use Cases: Real-time threat detection, compliance reporting (PCI, HIPAA), incident investigation
+* Configuration: Inputs.conf, props.conf, transforms.conf for log parsing; dashboards and alerts configured
+* Evidence: Screenshots of Splunk dashboards, search queries, alert configurations
+Cloud-Native SIEM/SOAR Tools:
+* Sumo Logic: Cloud-native log management; AWS integration via CloudWatch/S3
+* Datadog: Infrastructure monitoring, APM, security monitoring with AWS integration
+* Elastic (ELK Stack): Self-hosted or Elastic Cloud; Beats agents for log shipping
+* Panther: Cloud-native SIEM with Python-based detections; S3 log ingestion
+* Chronicle (Google): Cloud SIEM with YARA-L detection rules; AWS log forwarding
+Other Security Tools:
+* Tenable Nessus/Tenable.io: Vulnerability scanning of EC2 instances
+* Qualys: Cloud agent for continuous vulnerability assessment
+* CrowdStrike Falcon: EDR agents on EC2 for endpoint protection
+* Palo Alto Prisma Cloud: CSPM and CWPP for AWS security posture
+* Aqua Security/Sysdig: Container security for ECS/EKS workloads
+Integration Evidence:
+* Screenshots/logs showing active configurations
+* API integrations (e.g., Wazuh API receiving GuardDuty findings)
+* Data flow validation (e.g., logs appearing in Splunk/Wazuh/OpenSearch)
+* Agent deployment confirmation (e.g., Wazuh agents reporting to manager)
+Key Configuration Details:
+* Findings routed to Security Hub and third-party SIEM
+* Trails encrypted with KMS; logs retained per compliance requirements
+* Least-privilege IAM roles for service integrations
+* Network segmentation for SIEM/Wazuh infrastructure
+Tip: Turn on logging and threat detection early; you'll build detection rules and playbooks in Sprints 3–4.
+5. 📊 Deployment Evidence
+Definition: Evidence that your infra, pipelines, and integrations successfully deploy and run.
+Include:
+* IaC logs: terraform plan/apply outputs or CloudFormation stack events
+* Pipeline runs: Screenshots of successful executions (all stages green)
+* AWS console evidence: VPCs, subnets, roles, clusters, S3, KMS keys, etc. in the target account(s)
+* Service validation:
+   * GuardDuty findings present
+   * CloudTrail logs in S3 with proper encryption
+   * Security Hub dashboard populated with findings
+   * Wazuh agents reporting to manager
+   * Splunk receiving and indexing AWS logs
+   * OpenSearch dashboards displaying log data
+   * KMS keys created with proper policies
+   * Secrets Manager secrets with rotation configured
+* Project-Specific Evidence:
+   * DevSecOps: Container images in ECR, ECS/EKS services running, pipeline deploying to staging
+   * Security Lab: Lab environment deployed, accessible via bastion, auto-teardown scheduled
+   * SOC: Multi-source logs ingested, alerts firing, analyst dashboard operational
+   * SIEM: Log parsers working, correlation rules active, dashboards showing metrics
+   * KMS: Encrypted resources (S3, RDS, EBS) using CMKs, secret rotation logs
+* Optional: 2–5 min screen recording of the deployment flow or tool integration
+Tip: Annotate screenshots for clarity; group evidence logically in the appendix by service/tool.
+6. 🔄 End-to-End Workflow Validation
+Definition: Demonstrate that the system works as intended across components.
+Examples by project type:
+DevSecOps:
+* Commit triggers pipeline → security scans (Trivy, Checkov) pass → container built and pushed to ECR → deployed to ECS/EKS staging → smoke tests pass → Slack notification sent
+Security Lab:
+* Student requests lab → Lambda triggers IaC deployment → isolated VPC with vulnerable instances created → student accesses via Cognito-authenticated portal → EventBridge schedules teardown after 4 hours → Lambda destroys resources
+SOC:
+* CloudTrail logs unauthorized API call → GuardDuty detects threat → finding sent to Security Hub → EventBridge triggers Lambda → Lambda enriches alert and creates PagerDuty ticket → analyst views in OpenSearch dashboard → Step Functions orchestrates containment (isolate instance via security group)
+SIEM:
+* VPC Flow Logs → Kinesis Firehose → S3 → Lambda parses logs → OpenSearch indexes → correlation rule detects port scan → alert fires → Splunk/Wazuh receives enriched alert → analyst investigates via dashboard
+KMS:
+* Application requests secret from Secrets Manager → Secrets Manager decrypts using KMS CMK → secret returned to application → S3 bucket enforces encryption with KMS key → RDS database encrypted at rest with CMK → CloudTrail logs all KMS API calls
+Complete the following:
+* Workflow Description: What you validated in Sprint 2
+* Test Cases (2–3): Name, steps, expected result, actual result
+   * Example: "Test Case 1: GuardDuty Finding to Wazuh Integration"
+      * Steps: Simulate unauthorized API call, verify GuardDuty detection, confirm Wazuh receives finding
+      * Expected: Alert appears in Wazuh dashboard within 5 minutes
+      * Actual: Alert received in 3 minutes; screenshot attached
+* Evidence: Screenshots/logs linked to each test case
+* Issues & Resolution: Blockers encountered and how you resolved or will address in Sprint 3
+   * Example: "Wazuh agent installation failed on Amazon Linux 2023; resolved by updating agent version to 4.7"
+Tip: Keep tests repeatable and commit test scripts/artifacts to GitHub where possible.
+7. 👥 Team Member Contributions (Sprint 2)
+Definition: Clear breakdown of who did what this sprint.
+Complete the following:
+* Role Assignment: Team Lead, PM (optional), Infrastructure Engineer, Security Analyst, DevSecOps Engineer, SIEM Engineer, Developer, Documentation Owner
+* Contributions: Specific accomplishments for each member (measurable, tied to repo/issues or IaC modules)
+   * Example contributions below:
+      * (Jamie Chan) Infrastructure Engineer: Deployed VPC with 2 AZs, 4 subnets, NAT Gateway using Terraform; configured VPC Flow Logs to S3; PR #27
+      * (Carl Benett) Security Analyst: Enabled GuardDuty and Security Hub across 3 accounts; configured CloudTrail organization trail with KMS encryption; validated findings in Security Hub dashboard
+      * (Jose Santos) DevSecOps Engineer: Built CodePipeline with 5 stages; integrated Trivy container scanning; deployed sample API to ECS Fargate; PR #31
+      * (Jessica Jackson) SIEM Engineer: Deployed Wazuh manager on EC2; installed agents on 5 instances; configured CloudTrail log ingestion; created FIM rules for /etc and /var/log
+      * (Donna White) Developer: Created Lambda functions for log parsing and alert enrichment; deployed via SAM; unit tests passing; PR #29
+      * (Melanie Pascual) Documentation Owner: Updated topology diagram with VPC, subnets, and service integrations; maintained sprint report; organized appendix with screenshots
+* Collaboration Evidence (recommended): Jira/Trello board snapshot, GitHub commit history, PRs, or stand-up notes
+Tip: Be specific and quantify where possible (e.g., "Deployed 3 KMS keys with rotation enabled" vs. "Worked on KMS").
+Rubric
+Phase 3 Capstone: Universal Rubric (100 pts)
+Criteria
+	Ratings
+	Pts
+	This criterion is linked to a Learning Outcome
+Foundational Analysis & Strategic Planning
+	15 ptsExemplary
+13 ptsProficient
+11 ptsDeveloping
+0 ptsUnsatifactory
+	15 pts
+	This criterion is linked to a Learning Outcome
+Technical Architecture & Execution
+	30 ptsExemplary
+26 ptsProficient
+23 ptsDeveloping
+0 ptsUnsatifactory
+	30 pts
+	This criterion is linked to a Learning Outcome
+Business Viability & Commercialization
+	15 ptsFull Marks
+13 ptsProficient
+11 ptsDeveloping
+0 ptsUnsatifactory
+	15 pts
+	This criterion is linked to a Learning Outcome
+Compliance, Governance & Intelligence-Driven Response
+	20 ptsFull Marks
+17 ptsProficient
+14 ptsDeveloping
+0 ptsUnsatifactory
+	20 pts
+	This criterion is linked to a Learning Outcome
+Final Deliverables & Presentation
+	20 ptsFull Marks
+17 ptsProficient
+14 ptsDeveloping
+0 ptsUnsatifactory
+	20 pts
+	Total Points: 100
