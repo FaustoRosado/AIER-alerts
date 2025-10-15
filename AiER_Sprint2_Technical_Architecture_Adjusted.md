@@ -13,11 +13,11 @@
 **Submission Date:** October 13, 2025
 
 **Team Members & Roles:**
-- **Shay** - Project Lead & Documentation Architect
-- **Javier** - Security Specialist & Documentation
-- **Cuong** - Infrastructure & DevOps Engineer
-- **Crystal** - AI/ML Integration Specialist
-- **Fausto** - Systems Architecture Lead
+- **Shay** - Project Lead & Documentation Architect (Leads the overall project and manages documentation)
+- **Javier** - Security Specialist & Documentation (Focuses on security aspects and helps with documentation)
+- **Cuong** - Infrastructure & DevOps Engineer (Handles server setup, deployment, and operations)
+- **Crystal** - AI/ML Integration Specialist (Works on AI model integration and machine learning components)
+- **Fausto** - Systems Architecture Lead (Designs the overall system structure and architecture)
 
 ## Table of Contents
 
@@ -38,68 +38,72 @@
 
 **Tool:** Terraform v1.7.5
 
-**Justification:**
-- Multi-cloud capability for future expansion potential
-- Strong module ecosystem and community support
-- State management with S3 backend and DynamoDB locking
-- Better readability and reusability compared to JSON/YAML templates
-- Team familiarity from previous coursework
+**Why We Chose Terraform:**
+- Works with multiple cloud providers (not just AWS) for future flexibility
+- Has many pre-built modules and community support for faster development
+- Manages infrastructure state (what's deployed) using AWS S3 and DynamoDB for reliability
+- Code is easier to read and reuse compared to other formats
+- Our team already knows how to use it from previous classes
 
 ## GitHub Repository
 
 **Repository URL:** https://github.com/cu5t05/p3-api-devsec
 
-**Branch Structure:**
-- `main` - production-ready code
-- `develop` - integration branch
-- `feature/*` - individual feature branches
+**How We Organize Our Code:**
+- `main` branch - Contains stable, production-ready code that has been tested
+- `develop` branch - Where we integrate new features before they're ready for production
+- `feature/*` branches - Individual branches for each new feature we're working on
 
-**Commit Standards:** All commits follow conventional commit format (e.g., `feat: add VPC module`, `fix: correct IAM policy syntax`)
+**Our Commit Rules:** All code changes follow a standard format (e.g., `feat: add VPC module` for new features, `fix: correct IAM policy syntax` for bug fixes)
 
 ## Core Infrastructure Provisioned
 
-### Networking
-- **VPC:** 10.0.0.0/16 CIDR block across us-east-1
-- **Subnets:**
-  - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in us-east-1a and us-east-1b
-  - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b
-  - 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b
-- **Route Tables:** Separate route tables for public, private, and database tiers
-- **Internet Gateway:** Attached to VPC for public subnet internet access
-- **NAT Gateway:** Deployed in public subnet for private subnet outbound traffic
-- **VPC Flow Logs:** Enabled and sent to CloudWatch Logs (retention: 30 days)
+### Networking (How Computers Connect)
+Think of this as building the roads and neighborhoods for our system:
 
-### IAM
-- **Roles Created:**
-  - `devsecops-pipeline-role` - For CodePipeline with least-privilege access to CodeBuild, ECR, ECS
-  - `ecs-task-execution-role` - For ECS tasks to pull images from ECR and write logs to CloudWatch
-  - `lambda-log-parser-role` - For Lambda functions to read from S3 and write to OpenSearch
-  - `wazuh-manager-role` - For Wazuh EC2 instance to read CloudTrail logs from S3
-- **Policies:** All policies follow least-privilege principle with explicit resource ARNs (no wildcards except where required by AWS service)
-- **MFA Enforcement:** Root account MFA enabled; IAM users require MFA for console access
+- **VPC (Virtual Private Cloud):** A private network in AWS with IP range 10.0.0.0/16 in the US East region
+- **Subnets (Network Sections):**
+  - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in availability zones us-east-1a and us-east-1b - These can connect to the internet
+  - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b - These cannot connect to the internet directly
+  - 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b - Special subnets just for databases
+- **Route Tables:** Different rules for how traffic flows in public, private, and database areas
+- **Internet Gateway:** Allows public subnets to access the internet
+- **NAT Gateway:** Lets private subnets access the internet indirectly (for updates, etc.)
+- **VPC Flow Logs:** Records all network traffic and sends it to CloudWatch for 30 days
 
-### Compute/Storage
-- **ECS Cluster:** `devsecops-prod-cluster` using Fargate launch type
-- **ECR Repository:** `devsecops-api` with image scanning on push enabled
-- **S3 Buckets:**
-  - `cloudguardians-cloudtrail-logs` - CloudTrail logs with SSE-KMS encryption
-  - `cloudguardians-pipeline-artifacts` - CodePipeline artifacts with versioning enabled
-  - `cloudguardians-wazuh-logs` - Wazuh alert logs with lifecycle policy (90 days → Glacier)
-- **RDS:** PostgreSQL 15.4 instance (`db.t3.micro`) in private subnet with automated backups
+### IAM (Identity and Access Management)
+This is like giving different keys to different people - each person only gets access to what they need:
 
-### Security/Logging Services
-- **GuardDuty:** Enabled in us-east-1 with findings exported to Security Hub and S3
-- **Security Hub:** Enabled with AWS Foundational Security Best Practices and CIS AWS Foundations Benchmark v1.4.0
-- **CloudTrail:** Organization trail `cloudguardians-org-trail` logging all management and data events to S3 with SSE-KMS encryption
-- **Config:** Enabled with rules for S3 bucket encryption, IAM password policy, and VPC Flow Logs
-- **Secrets Manager:** Storing RDS credentials with automatic 30-day rotation
-- **Systems Manager Parameter Store:** Storing non-sensitive configuration parameters
+- **Security Roles We Created:**
+  - `devsecops-pipeline-role` - Gives CodePipeline limited access to build, store, and run containers
+  - `ecs-task-execution-role` - Allows ECS tasks to get container images and send logs to CloudWatch
+  - `lambda-log-parser-role` - Lets Lambda functions read from S3 and write to OpenSearch
+  - `wazuh-manager-role` - Allows Wazuh server to read CloudTrail logs from S3
+- **Security Policies:** All permissions follow "least privilege" - only give access to specific resources, not everything
+- **MFA (Multi-Factor Authentication):** Root AWS account has extra security; all IAM users must use MFA to log in
 
-### DevSecOps-Specific Services
-- **CodePipeline:** `devsecops-api-pipeline` with 5 stages (Source, Build, Test, Security Scan, Deploy)
-- **CodeBuild:** Build projects for application build, Trivy scanning, and Terraform validation
-- **CodeDeploy:** Blue/green deployment to ECS Fargate
-- **WAF:** Web ACL attached to Application Load Balancer with AWS Managed Rules (Core Rule Set, Known Bad Inputs)
+### Compute/Storage (Where Things Run and Data is Stored)
+- **ECS Cluster:** `devsecops-prod-cluster` using Fargate (serverless container service)
+- **ECR Repository:** `devsecops-api` with automatic security scanning when we push new container images
+- **S3 Buckets (File Storage):**
+  - `cloudguardians-cloudtrail-logs` - Stores CloudTrail logs with strong encryption
+  - `cloudguardians-pipeline-artifacts` - Stores build artifacts with version history
+  - `cloudguardians-wazuh-logs` - Stores security alerts, moves to cheaper storage after 90 days
+- **RDS Database:** PostgreSQL 15.4 (`db.t3.micro`) in private subnet with automatic backups
+
+### Security/Logging Services (Protection and Monitoring)
+- **GuardDuty:** AWS threat detection service in us-east-1, sends findings to Security Hub and S3
+- **Security Hub:** Central dashboard with AWS security best practices and CIS benchmarks v1.4.0
+- **CloudTrail:** Organization-wide logging of all management and data events to encrypted S3
+- **Config:** AWS service that checks if our resources follow security rules (encryption, passwords, etc.)
+- **Secrets Manager:** Safely stores database passwords with automatic rotation every 30 days
+- **Systems Manager Parameter Store:** Stores non-sensitive configuration settings
+
+### DevSecOps-Specific Services (Development and Security Tools)
+- **CodePipeline:** `devsecops-api-pipeline` with 5 stages: Source → Build → Test → Security Scan → Deploy
+- **CodeBuild:** Builds our application, scans for vulnerabilities, and validates infrastructure code
+- **CodeDeploy:** Safely deploys updates using blue/green strategy (test new version alongside old)
+- **WAF:** Web protection attached to load balancer with AWS security rules
 
 ## Code Structure
 
@@ -126,10 +130,10 @@ terraform/
 └── README.md
 ```
 
-**Naming Convention:** `{project}-{environment}-{resource}-{identifier}`
+**How We Name Things:** `{project}-{environment}-{resource}-{identifier}`
 **Example:** `cloudguardians-prod-ecs-api`
 
-**Tagging Strategy:**
+**How We Tag Resources:**
 - **Project:** CloudGuardians
 - **Environment:** Dev|Staging|Prod
 - **Owner:** [Team Member Name]
@@ -181,69 +185,70 @@ resource "aws_flow_log" "main" {
 
 ![Architecture Diagram](images/architecture-diagram.png)
 
-**Diagram Description:**
-The architecture shows a three-tier application deployed across two availability zones (us-east-1a and us-east-1b) with the following components:
+**What This Diagram Shows:**
+This is a visual map of our entire system, showing how all components connect and work together.
 
-**Network Layer:**
-- VPC (10.0.0.0/16) with public, private, and database subnets
-- Internet Gateway for public internet access
-- NAT Gateway in public subnet for private subnet outbound traffic
-- Application Load Balancer in public subnets distributing traffic to ECS tasks
-- Security groups controlling traffic between tiers
+**Network Layer (The Foundation):**
+- VPC (10.0.0.0/16) - Our private network divided into public, private, and database sections
+- Internet Gateway - Allows public parts of our system to access the internet
+- NAT Gateway - Lets private parts access the internet indirectly (for updates)
+- Load Balancer - Distributes incoming traffic across multiple servers in public subnets
+- Security Groups - Firewall rules controlling which traffic can go where
 
-**Application Layer:**
-- ECS Fargate cluster running containerized API application
-- ECR repository storing container images with vulnerability scanning
-- RDS PostgreSQL database in private database subnets
-- Secrets Manager storing database credentials
+**Application Layer (Where Our App Runs):**
+- ECS Fargate Cluster - Runs our containerized API application
+- ECR Repository - Stores our container images with security scanning
+- RDS Database - PostgreSQL database in private subnets for data storage
+- Secrets Manager - Safely stores database passwords and other secrets
 
-**CI/CD Pipeline:**
-- GitHub repository triggering CodePipeline on commit
-- CodeBuild performing build, test, and security scanning (Trivy, Checkov)
-- CodeDeploy performing blue/green deployment to ECS
+**Development Pipeline (How We Build and Deploy):**
+- GitHub Repository - Triggers our deployment pipeline when code is committed
+- CodeBuild - Builds, tests, and scans our code for security issues
+- CodeDeploy - Safely deploys updates using blue/green method (test new version first)
 
-**Security & Monitoring:**
-- GuardDuty monitoring for threats across VPC and AWS API calls
-- Security Hub aggregating findings from GuardDuty, Config, and Inspector
-- CloudTrail logging all API calls to S3 with KMS encryption
-- VPC Flow Logs sent to CloudWatch Logs
-- Wazuh manager (EC2) collecting logs from CloudTrail S3 bucket and ECS tasks
-- WAF protecting Application Load Balancer
+**Security & Monitoring (Protection and Oversight):**
+- GuardDuty - Detects threats across our VPC and AWS account
+- Security Hub - Central place for all security findings and compliance checks
+- CloudTrail - Logs all API calls to S3 with encryption
+- VPC Flow Logs - Records all network traffic sent to CloudWatch
+- Wazuh Manager - EC2 server that collects logs from CloudTrail and ECS
+- WAF - Protects our web application from common attacks
 
-**Data Flow:**
+**How Data Flows Through Our System:**
 1. Developer commits code to GitHub
-2. CodePipeline triggered → CodeBuild runs tests and scans
-3. If passed, container image pushed to ECR
-4. CodeDeploy performs blue/green deployment to ECS
-5. User traffic flows through ALB → WAF → ECS tasks → RDS
-6. All API calls logged to CloudTrail → S3 → Wazuh
-7. GuardDuty findings → Security Hub → EventBridge → SNS → Slack alerts
+2. CodePipeline starts automatically
+3. CodeBuild runs tests and security scans
+4. If everything passes, container image goes to ECR
+5. CodeDeploy updates ECS with new version
+6. Users access through Load Balancer → WAF → ECS → Database
+7. All actions logged to CloudTrail → S3 → Wazuh
+8. GuardDuty alerts go to Security Hub → EventBridge → SNS → Slack notifications
 
 ### AWS Well-Architected Framework Alignment
 
-**Security Pillar:**
-- Identity & Access Management: Least-privilege IAM roles with explicit resource ARNs; MFA enforced; no long-term access keys
-- Detective Controls: GuardDuty, Security Hub, Config, CloudTrail, VPC Flow Logs enabled
-- Infrastructure Protection: Security groups with minimal required ports; WAF protecting public endpoints; private subnets for application and database tiers
-- Data Protection: Encryption at rest (S3 SSE-KMS, RDS encryption, EBS encryption) and in transit (TLS 1.2+ enforced on ALB)
+**Security Pillar (Protection):**
+- Identity & Access Management: Give each component only the permissions it needs; require MFA for human users; no long-term access keys
+- Detective Controls: GuardDuty, Security Hub, Config, CloudTrail, VPC Flow Logs all enabled
+- Infrastructure Protection: Security groups with minimal open ports; WAF on public endpoints; private subnets for sensitive components
+- Data Protection: Encryption for stored data (S3, RDS, EBS) and data in transit (TLS 1.2+ on load balancer)
 
-**Reliability Pillar:**
-- Foundations: VPC designed with sufficient IP space; service quotas reviewed
-- Change Management: Infrastructure as Code with version control; automated deployments via pipeline
+**Reliability Pillar (Stability):**
+- Foundations: VPC designed with enough IP addresses; checked AWS service limits
+- Change Management: Infrastructure as Code with version control; automated deployments
 - Failure Management: Multi-AZ deployment for high availability; RDS automated backups; blue/green deployments minimize downtime
 
-**Cost Optimization Pillar:**
-- Expenditure Awareness: Resource tagging for cost allocation; CloudWatch billing alarms set at $50, $100, $150
-- Cost-Effective Resources: Fargate for ECS (no EC2 management overhead); t3.micro for RDS (right-sized for dev workload); S3 lifecycle policies moving logs to Glacier after 90 days
+**Cost Optimization Pillar (Efficiency):**
+- Expenditure Awareness: Resource tagging for cost tracking; CloudWatch billing alarms at $50, $100, $150
+- Cost-Effective Resources: Fargate for ECS (no server management); t3.micro for RDS (right-sized); S3 lifecycle policies move logs to cheaper storage after 90 days
 
 ### Changes from Sprint 1
-**Sprint 1 (Initial Topology):**
+**Sprint 1 (Initial Plan):**
 - High-level conceptual diagram showing VPC, CI/CD concept, and placeholder security services
 
-**Sprint 2 (Current Topology):**
-- Detailed subnet architecture with CIDR blocks and availability zones
+**Sprint 2 (Current Implementation):**
+- Detailed subnet architecture with specific IP ranges and availability zones
 - Specific AWS services deployed (ECS, ECR, RDS, ALB, WAF)
-- CI/CD pipeline stages and security gates defined
+- CI/CD pipeline stages and security gates fully defined
 - Security services configured (GuardDuty, Security Hub, CloudTrail, Config)
 - Wazuh integration with data flow from CloudTrail S3 bucket
 - Network security controls (security groups, NACLs) specified
@@ -257,7 +262,7 @@ The architecture shows a three-tier application deployed across two availability
 
 **Tool:** AWS CodePipeline with CodeBuild
 
-**Justification:**
+**Why We Chose This:**
 - Native AWS integration with ECR, ECS, IAM
 - No additional infrastructure to manage (serverless)
 - Built-in integration with GitHub via CodeStar Connections
@@ -267,48 +272,48 @@ The architecture shows a three-tier application deployed across two availability
 ## Stages
 
 ### Stage 1: Source
-- **Trigger:** GitHub webhook on push to main branch
+- **Trigger:** GitHub webhook when code is pushed to main branch
 - **Repository:** https://github.com/cloudguardians/devsecops-api
 - **Connection:** CodeStar Connection cloudguardians-github
-- **Output Artifact:** SourceArtifact (application source code)
+- **Output:** SourceArtifact (application source code)
 
 ### Stage 2: Build
 - **Build Project:** devsecops-api-build
 - **Environment:** aws/codebuild/standard:7.0 (Ubuntu, Docker 24.x, Python 3.11)
-- **Actions:**
+- **What It Does:**
   - Install dependencies (pip install -r requirements.txt)
-  - Run linters (flake8, pylint)
+  - Run linters (flake8, pylint) to check code quality
   - Build Docker image
   - Tag image with commit SHA and latest
-- **Output Artifact:** BuildArtifact (imagedefinitions.json for ECS)
+- **Output:** BuildArtifact (imagedefinitions.json for ECS)
 
 ### Stage 3: Test
 - **Build Project:** devsecops-api-test
-- **Actions:**
-  - Run unit tests with pytest (coverage threshold: 80%)
+- **What It Does:**
+  - Run unit tests with pytest (must have 80% code coverage)
   - Run integration tests against test database
   - Generate test report (JUnit XML format)
-- **Success Criteria:** All tests pass; coverage ≥80%
-- **Failure Action:** Pipeline stops; SNS notification sent to team Slack channel
+- **Success Requirement:** All tests pass; coverage ≥80%
+- **If It Fails:** Pipeline stops; SNS notification sent to team Slack channel
 
 ### Stage 4: Security Scan
 - **Build Project:** devsecops-api-security-scan
-- **Parallel Actions:**
+- **Parallel Actions (Run Simultaneously):**
   1. Container Scanning (Trivy):
-     - Scan Docker image for CVEs
-     - Fail on HIGH or CRITICAL vulnerabilities
+     - Scan Docker image for known vulnerabilities (CVEs)
+     - Fail if HIGH or CRITICAL vulnerabilities found
      - Generate SARIF report uploaded to Security Hub
   2. IaC Scanning (Checkov):
      - Scan Terraform code for misconfigurations
      - Check against CIS benchmarks
      - Fail on HIGH severity policy violations
   3. Secret Scanning (TruffleHog):
-     - Scan git history for exposed secrets
+     - Scan git history for accidentally committed secrets
      - Fail if secrets detected
   4. SAST (Bandit for Python):
      - Static analysis for security issues in code
      - Fail on HIGH confidence issues
-- **Success Criteria:** All scans pass or only LOW/MEDIUM findings
+- **Success Requirement:** All scans pass or only LOW/MEDIUM findings
 - **Output:** Security scan reports uploaded to S3 cloudguardians-security-reports
 
 ### Stage 5: Deploy
@@ -410,7 +415,7 @@ phases:
 
 ![Pipeline Diagram](images/pipeline-diagram.png)
 
-**Flow:**
+**How the Pipeline Works:**
 1. Developer pushes code to GitHub main branch
 2. GitHub webhook triggers CodePipeline
 3. Source Stage: Code pulled from GitHub
@@ -580,6 +585,8 @@ phases:
 ## Third-Party Tools Integration
 
 ### Wazuh (Host-based IDS/IPS, SIEM, Compliance)
+**What is Wazuh?** Wazuh is an open-source security platform that provides intrusion detection, log analysis, and compliance monitoring.
+
 **Deployment:**
 - **Wazuh Manager:** EC2 t3.medium instance in private subnet (10.0.10.50)
 - **OS:** Ubuntu 22.04 LTS
@@ -616,21 +623,10 @@ phases:
    - Agent configuration monitors /app/logs and /etc directories
 
 **Use Cases Configured:**
-- **File Integrity Monitoring (FIM):**
-  - Monitoring /etc, /bin, /sbin, /usr/bin on Wazuh manager
-  - Monitoring /app/config in ECS containers
-  - Real-time alerts on file changes
-- **Rootkit Detection:**
-  - Daily rootkit scans using rootcheck module
-  - Checks for hidden processes, ports, files
-- **CIS Benchmarks:**
-  - CIS Ubuntu 22.04 benchmark enabled on Wazuh manager
-  - CIS Docker benchmark enabled for ECS containers
-  - Compliance score: 87% (Sprint 2 baseline)
-- **PCI DSS Compliance:**
-  - PCI DSS v4.0 compliance module enabled
-  - Monitoring requirements: 10.2 (audit logs), 10.3 (log integrity), 11.5 (FIM)
-  - Compliance dashboard showing coverage by requirement
+- **File Integrity Monitoring (FIM):** Monitors /etc, /bin, /sbin, /usr/bin on Wazuh manager and /app/config in ECS containers for unauthorized changes
+- **Rootkit Detection:** Daily scans for hidden processes, ports, and files
+- **CIS Benchmarks:** CIS Ubuntu 22.04 benchmark enabled on Wazuh manager and CIS Docker benchmark for ECS containers (87% compliance score)
+- **PCI DSS Compliance:** PCI DSS v4.0 compliance module enabled for audit logs, log integrity, and FIM
 
 **Configuration Details:**
 - **Alert Levels:** Configured to forward Level 7+ alerts to Security Hub via custom integration script
@@ -1011,12 +1007,6 @@ ecs_cluster_name = "devsecops-prod-cluster"
 
 *(Additional screenshots D2-D14 available in /images directory)*
 
-## Appendix E: Third-Party Tool Screenshots
-### E1: Wazuh Dashboard Overview
-![Wazuh Dashboard](images/wazuh-dashboard.png)
-
-*(Additional screenshots E2-E13 available in /images directory)*
-
 ### Demo Frontend Integration
 
 **Interactive Demo:** [View AI/ER Frontend Demo](demo.html)
@@ -1068,3 +1058,38 @@ The AI Emergency Response System includes a web-based frontend interface that al
 
 **End of Sprint 2 Submission**
 
+# 1. Infrastructure as Code (IaC)
+
+## IaC Tool Selection
+
+**Tool:** Terraform v1.7.5
+
+**Justification:**
+- Multi-cloud capability for future expansion potential
+- Strong module ecosystem and community support
+- State management with S3 backend and DynamoDB locking
+- Better readability and reusability compared to JSON/YAML templates
+- Team familiarity from previous coursework
+
+## GitHub Repository
+
+**Repository URL:** https://github.com/cu5t05/p3-api-devsec
+
+**Branch Structure:**
+- `main` - production-ready code
+- `develop` - integration branch
+- `feature/*` - individual feature branches
+
+**Commit Standards:** All commits follow conventional commit format (e.g., `feat: add VPC module`, `fix: correct IAM policy syntax`)
+
+## Core Infrastructure Provisioned
+
+### Networking
+- **VPC:** 10.0.0.0/16 CIDR block across us-east-1
+- **Subnets:**
+  - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in us-east-1a and us-east-1b
+  - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a and us-east-1b
+  - 2 database subnets (10.0.20.0/24, 10.0.21.0/24) in us-east-1a and us-east-1b
+- **Route Tables:** Separate route tables for public, private, and database tiers
+- **Internet Gateway:** Attached to VPC for public subnet internet access
+- **NAT Gateway:** Deployed in public subnet for private subnet outbound traffic
