@@ -564,6 +564,18 @@ debug/
 SETUP_GUIDE_MAC_M4_PRO.md
 
 # ================================================
+# FILE AND FOLDER EXEMPTIONS
+# ================================================
+
+# Exempt specific documentation files from being ignored
+!docs/P3_ Sprint 2_ Technical Execution.txt
+!docs/Sprint 2 - Example Submission.txt
+!AiER_Sprint2_Technical Architecture & Execution_[2025_10_13].md
+!AiER_Sprint2_Technical_Architecture_Original.md
+!AiER_Sprint2_Technical_Architecture_Adjusted.md
+!docs/
+
+# ================================================
 # MISCELLANEOUS
 # ================================================
 
