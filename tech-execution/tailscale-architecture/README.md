@@ -718,4 +718,3 @@ resource "aws_autoscaling_group" "tailscale_subnet_router" {
 
 For issues specific to this implementation, contact your DevSecOps team. For Tailscale-specific issues, consult [Tailscale Support](https://tailscale.com/contact/support).
 
-

@@ -478,4 +478,3 @@ You've learned:
 
 Practice these skills in your lab environment before applying to production systems!
 
-
