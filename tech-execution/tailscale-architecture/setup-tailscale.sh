@@ -35,6 +35,7 @@ print_info "Starting Tailscale installation and configuration"
 
 # Detect OS
 if [ -f /etc/os-release ]; then
+    # shellcheck source=/dev/null
     . /etc/os-release
     OS=$ID
     VERSION=$VERSION_ID
@@ -102,9 +103,9 @@ configure_tailscale() {
     echo "  3. Device tags (e.g., tag:aws-subnet-router)"
     echo ""
     
-    read -p "Enter Tailscale auth key: " AUTH_KEY
-    read -p "Enter subnet routes to advertise (comma-separated): " SUBNET_ROUTES
-    read -p "Enter device tags (comma-separated): " DEVICE_TAGS
+    read -r -p "Enter Tailscale auth key: " AUTH_KEY
+    read -r -p "Enter subnet routes to advertise (comma-separated): " SUBNET_ROUTES
+    read -r -p "Enter device tags (comma-separated): " DEVICE_TAGS
     
     print_info "Starting Tailscale with configuration..."
     
@@ -150,7 +151,7 @@ main() {
     enable_service
     
     echo ""
-    read -p "Do you want to configure Tailscale now? (y/n): " CONFIGURE
+    read -r -p "Do you want to configure Tailscale now? (y/n): " CONFIGURE
     
     if [ "$CONFIGURE" = "y" ] || [ "$CONFIGURE" = "Y" ]; then
         configure_tailscale
