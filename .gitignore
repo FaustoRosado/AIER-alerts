@@ -72,6 +72,14 @@ secrets.json
 kaggle.json
 **/kaggle.json
 
+# Tailscale keys - NEVER COMMIT
+tskey-*
+**/tskey-*
+tailscale-auth-key*
+**/tailscale-auth-key*
+.tailscale/
+**/tailscale.key
+
 # Team credentials - NEVER COMMIT
 team-credentials/
 *credentials*.txt
