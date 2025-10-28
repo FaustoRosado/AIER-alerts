@@ -123,6 +123,14 @@ temp/
 *.tar
 *.zip
 
+# Images and text files (prevent accidental personal info commits)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.txt
+
 # Keep project structure files
 !.gitkeep
 !data/.gitkeep
