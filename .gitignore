@@ -1,0 +1,281 @@
+# AIER Capstone Project - Root .gitignore
+# This applies to the entire capstone project directory
+
+# ==============================================================================
+# SENSITIVE INFORMATION - CRITICAL
+# ==============================================================================
+
+# AWS Credentials and Keys
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+credentials
+config
+aws-exports.js
+
+# Secrets and API Keys
+*.secret
+secrets.json
+secrets.yaml
+secrets.yml
+.env
+.env.local
+.env.production
+.env.*.local
+kaggle.json
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# ==============================================================================
+# TERRAFORM STATE FILES - NEVER COMMIT
+# ==============================================================================
+
+# State files contain infrastructure details and potential secrets
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+
+# Terraform variable files may contain sensitive data
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plans may expose infrastructure details
+*.tfplan
+*.tfplan.json
+
+# Terraform directories
+.terraform/
+.terraform.lock.hcl
+
+# ==============================================================================
+# OPERATING SYSTEM FILES
+# ==============================================================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==============================================================================
+# IDE AND EDITOR FILES
+# ==============================================================================
+
+# Visual Studio Code
+.vscode/
+.vscode-test/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+Session.vim
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ==============================================================================
+# LANGUAGE-SPECIFIC BUILD ARTIFACTS
+# ==============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.next
+out
+.nuxt
+dist
+.cache/
+.parcel-cache
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vscode-test
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ==============================================================================
+# PROJECT-SPECIFIC
+# ==============================================================================
+
+# Data files (Kaggle datasets)
+data_viz/data/*.csv
+data_viz/data/*.json
+!data_viz/data/.gitkeep
+
+# Sprint 4 AI SIEM - Local guides only
+tech-execution/ai-siem-infra/IMPLEMENTATION.md
+tech-execution/ai-siem-infra/*/IMPLEMENTATION.md
+tech-execution/ai-siem-infra/QUICK_START.md
+tech-execution/ai-siem-infra/SUMMARY.md
+tech-execution/ai-siem-infra/SCREENSHOT_CHECKLIST.md
+tech-execution/ai-siem-infra/GIT_WORKFLOW.md
+tech-execution/ai-siem-infra/STATUS.md
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# Backup files
+*.backup
+*.old
+*.orig
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# ==============================================================================
+# DOCKER
+# ==============================================================================
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# ==============================================================================
+# KEEP THESE FILES
+# ==============================================================================
+
+# Important: Keep documentation
+!README.md
+!docs/**/*.md
+!docs/**/*.txt
+
+# Keep configuration files
+!.gitignore
+!.gitkeep
+!package.json
+!tsconfig.json
+!requirements.txt
+!*.tf
+!*.sh
+!*.ps1
+
+# Keep scripts
+!scripts/**/*.py
+!scripts/**/*.sh
+!scripts/**/*.ps1
+
