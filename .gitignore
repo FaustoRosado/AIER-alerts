@@ -67,10 +67,14 @@ override.tf.json
 .DS_Store
 .DS_Store?
 ._*
+**/._*
+**/._.DS_Store
 .Spotlight-V100
 .Trashes
 .AppleDouble
 .LSOverride
+.localized
+.VolumeIcon.icns
 
 # Windows
 Thumbs.db
