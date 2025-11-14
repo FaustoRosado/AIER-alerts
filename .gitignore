@@ -277,6 +277,11 @@ tech-execution/sprint3/*.md
 !tech-execution/sprint3/README.md
 !tech-execution/sprint3/demo_guide.md
 
+# Sprint 3 live-demo: Ignore user-directed files
+tech-execution/sprint3/live-demo/MORNING_SUMMARY.md
+tech-execution/sprint3/live-demo/validate_setup.sh
+tech-execution/sprint3/live-demo/credentials-example.json
+
 # Keep configuration files
 !.gitignore
 !.gitkeep
