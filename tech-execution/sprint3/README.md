@@ -27,8 +27,8 @@ plus: healthcare ai-er alert system using local phi-3 llm for patient vitals ana
 ### option 1: docker (easiest)
 
 ```bash
-git clone https://github.com/YOUR_REPO/capstone.git
-cd capstone/tech-execution/sprint3/live-demo
+git clone -b sprint3-v2 https://github.com/FaustoRosado/AIER-alerts.git
+cd AIER-alerts/tech-execution/sprint3/live-demo
 docker-compose up
 ```
 
@@ -37,15 +37,11 @@ browser opens at `localhost:8501` showing live dashboard
 ### option 2: local python
 
 ```bash
-git clone -b sprint3-v2 https://github.com/YOUR_REPO/capstone.git
-cd capstone/tech-execution/sprint3/live-demo
+git clone -b sprint3-v2 https://github.com/FaustoRosado/AIER-alerts.git
+cd AIER-alerts/tech-execution/sprint3/live-demo
 pip install -r requirements.txt
 streamlit run dashboard.py
 ```
-
-### option 3: google colab (no install)
-
-open: `Sprint3_Demo.ipynb` in repo, click "run all"
 
 ## what you'll see
 
