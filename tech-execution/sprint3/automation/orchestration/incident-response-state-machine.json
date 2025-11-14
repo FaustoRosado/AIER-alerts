@@ -1,0 +1,257 @@
+{
+  "Comment": "Incident Response Orchestration - Simple, Visible Workflow",
+  "StartAt": "DetectIncident",
+  "States": {
+    
+    "DetectIncident": {
+      "Type": "Task",
+      "Comment": "STEP 1: Validate that we have a real incident (not false positive)",
+      "Resource": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:pipeline-validator",
+      "ResultPath": "$.validation",
+      "Next": "IsRealIncident",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0,
+          "Comment": "Retry validation if it fails (network issues, etc)"
+        }
+      ]
+    },
+
+    "IsRealIncident": {
+      "Type": "Choice",
+      "Comment": "DECISION: Is this a real incident that needs response?",
+      "Choices": [
+        {
+          "Variable": "$.validation.needs_remediation",
+          "BooleanEquals": true,
+          "Comment": "Yes, remediation needed",
+          "Next": "CheckDriftSeverity"
+        }
+      ],
+      "Default": "LogAndClose"
+    },
+
+    "CheckDriftSeverity": {
+      "Type": "Task",
+      "Comment": "STEP 2: Detect infrastructure drift and assess severity",
+      "Resource": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:drift-detector",
+      "ResultPath": "$.drift",
+      "Next": "IsCriticalDrift",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "IsCriticalDrift": {
+      "Type": "Choice",
+      "Comment": "DECISION: Is drift critical enough for immediate action?",
+      "Choices": [
+        {
+          "Variable": "$.drift.drift_severity",
+          "StringEquals": "CRITICAL",
+          "Comment": "Critical drift requires immediate action",
+          "Next": "NotifySecurityTeam"
+        },
+        {
+          "Or": [
+            {
+              "Variable": "$.drift.drift_severity",
+              "StringEquals": "HIGH"
+            },
+            {
+              "Variable": "$.drift.drift_severity",
+              "StringEquals": "MEDIUM"
+            }
+          ],
+          "Comment": "High/Medium drift can be auto-remediated",
+          "Next": "AttemptAutoRemediation"
+        }
+      ],
+      "Default": "LogAndClose"
+    },
+
+    "NotifySecurityTeam": {
+      "Type": "Task",
+      "Comment": "CRITICAL PATH: Alert security team for manual review",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:${AWS_ACCOUNT}:security-alerts",
+        "Subject": "CRITICAL: Security Drift Detected",
+        "Message.$": "States.Format('Critical drift detected in {}. Manual review required. Severity: {}', $.drift.resource_id, $.drift.drift_severity)"
+      },
+      "ResultPath": "$.notification",
+      "Next": "WaitForApproval"
+    },
+
+    "WaitForApproval": {
+      "Type": "Task",
+      "Comment": "WAIT: Pause execution until security team approves action",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "approval-handler",
+        "Payload": {
+          "ExecutionId.$": "$$.Execution.Id",
+          "TaskToken.$": "$$.Task.Token",
+          "DriftInfo.$": "$.drift"
+        }
+      },
+      "ResultPath": "$.approval",
+      "Next": "AttemptAutoRemediation",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.Timeout"],
+          "ResultPath": "$.timeout",
+          "Next": "ApprovalTimeout"
+        }
+      ],
+      "TimeoutSeconds": 3600,
+      "HeartbeatSeconds": 300
+    },
+
+    "AttemptAutoRemediation": {
+      "Type": "Task",
+      "Comment": "STEP 3: Attempt to automatically fix the drift",
+      "Resource": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:auto-remediator",
+      "ResultPath": "$.remediation",
+      "Next": "RemediationSucceeded",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.remediation_error",
+          "Next": "RemediationFailed"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 1,
+          "BackoffRate": 1.5,
+          "Comment": "Retry remediation once if it fails"
+        }
+      ]
+    },
+
+    "RemediationSucceeded": {
+      "Type": "Choice",
+      "Comment": "DECISION: Did remediation succeed?",
+      "Choices": [
+        {
+          "Or": [
+            {
+              "Variable": "$.remediation.execution_result.status",
+              "StringEquals": "IN_PROGRESS"
+            },
+            {
+              "Variable": "$.remediation.execution_result.status",
+              "StringEquals": "SUCCESS"
+            }
+          ],
+          "Next": "NotifySuccess"
+        }
+      ],
+      "Default": "RemediationFailed"
+    },
+
+    "NotifySuccess": {
+      "Type": "Task",
+      "Comment": "SUCCESS PATH: Incident resolved, notify stakeholders",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:${AWS_ACCOUNT}:devops-notifications",
+        "Subject": "Incident Resolved: Auto-remediation Successful",
+        "Message.$": "States.Format('Incident resolved for {}. Status: {}', $.drift.resource_id, $.remediation.execution_result.status)"
+      },
+      "ResultPath": "$.success_notification",
+      "Next": "LogAndClose"
+    },
+
+    "RemediationFailed": {
+      "Type": "Task",
+      "Comment": "FAILURE PATH: Remediation failed, escalate to ops team",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:${AWS_ACCOUNT}:ops-alerts",
+        "Subject": "Remediation Failed: Manual Intervention Required",
+        "Message.$": "States.Format('Auto-remediation failed for {}. Error: {}. Manual intervention required.', $.drift.resource_id, $.remediation_error.Error)"
+      },
+      "ResultPath": "$.failure_notification",
+      "Next": "CreateTicket"
+    },
+
+    "CreateTicket": {
+      "Type": "Task",
+      "Comment": "Create incident ticket for ops team to track resolution",
+      "Resource": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:create-ticket",
+      "Parameters": {
+        "TicketType": "Incident",
+        "Priority": "High",
+        "Summary.$": "States.Format('Failed auto-remediation: {}', $.drift.resource_id)",
+        "Details.$": "$"
+      },
+      "ResultPath": "$.ticket",
+      "Next": "LogAndClose",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.ticket_error",
+          "Next": "LogAndClose"
+        }
+      ]
+    },
+
+    "ApprovalTimeout": {
+      "Type": "Task",
+      "Comment": "TIMEOUT PATH: No approval received, escalate",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:${AWS_ACCOUNT}:security-alerts",
+        "Subject": "URGENT: Approval Timeout for Critical Drift",
+        "Message": "No approval received for critical drift remediation. Escalating to security management."
+      },
+      "Next": "LogAndClose"
+    },
+
+    "NotifyFailure": {
+      "Type": "Task",
+      "Comment": "ERROR PATH: Something went wrong in the workflow itself",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:us-east-1:${AWS_ACCOUNT}:ops-alerts",
+        "Subject": "Incident Response Workflow Failed",
+        "Message.$": "States.Format('Incident response workflow failed. Error: {}', $.error.Error)"
+      },
+      "Next": "LogAndClose"
+    },
+
+    "LogAndClose": {
+      "Type": "Pass",
+      "Comment": "FINAL STEP: Log complete execution context for audit trail",
+      "Parameters": {
+        "execution_id.$": "$$.Execution.Id",
+        "execution_name.$": "$$.Execution.Name",
+        "start_time.$": "$$.Execution.StartTime",
+        "complete_context.$": "$"
+      },
+      "End": true
+    }
+  },
+
+  "TimeoutSeconds": 7200,
+  "Comment": "This state machine handles incident response from detection to resolution. Every step is visible in the Step Functions console, making it easy to understand and debug."
+}
+

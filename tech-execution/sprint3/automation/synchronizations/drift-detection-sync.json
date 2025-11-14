@@ -1,0 +1,61 @@
+{
+  "_comment": "SYNCHRONIZATION: Infrastructure Drift Detection and Remediation",
+  "_purpose": "When AWS Config detects non-compliance, check for drift and auto-remediate if safe",
+  "_pattern": "Two-stage sync: Config -> DriftDetector -> AutoRemediator",
+  
+  "sync_name": "DriftDetectionAndRemediationSync",
+  
+  "when": {
+    "description": "Triggers when AWS Config compliance evaluation changes",
+    "event_pattern": {
+      "source": ["aws.config"],
+      "detail-type": ["Config Rules Compliance Change"],
+      "detail": {
+        "newEvaluationResult": {
+          "complianceType": ["NON_COMPLIANT"]
+        }
+      }
+    }
+  },
+  
+  "then": {
+    "description": "First invoke DriftDetector, then chain to AutoRemediator",
+    "targets": [
+      {
+        "id": "InvokeDriftDetector",
+        "arn": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:drift-detector",
+        "comment": "Stage 1: Detect if this is actual drift vs expected change"
+      }
+    ]
+  },
+  
+  "and_then": {
+    "description": "After drift detected, auto-remediate if severity allows",
+    "event_pattern": {
+      "source": ["custom.drift-detector"],
+      "detail-type": ["Drift Detected"],
+      "detail": {
+        "is_drift": [true],
+        "requires_remediation": [true]
+      }
+    },
+    "targets": [
+      {
+        "id": "InvokeAutoRemediator",
+        "arn": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:auto-remediator",
+        "comment": "Stage 2: Fix the drift automatically or request manual approval"
+      }
+    ]
+  },
+  
+  "operational_principle": {
+    "description": "Config detects change -> DriftDetector validates drift -> AutoRemediator fixes or escalates",
+    "example": "Someone manually changes security group -> Config detects -> Drift confirmed -> Auto-revert via Terraform"
+  },
+  
+  "transparency": {
+    "note": "Every step logs to CloudWatch, so you can trace: Config event -> Drift detection -> Remediation action",
+    "audit_trail": "CloudWatch Logs + EventBridge history = complete provenance"
+  }
+}
+

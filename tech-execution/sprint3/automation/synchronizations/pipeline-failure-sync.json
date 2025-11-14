@@ -1,0 +1,43 @@
+{
+  "_comment": "SYNCHRONIZATION: Pipeline Failure Detection",
+  "_purpose": "When a pipeline fails, validate the failure and trigger remediation",
+  "_pattern": "Event-based rule that mediates between CodePipeline and PipelineValidator concept",
+  
+  "sync_name": "PipelineFailureSync",
+  
+  "when": {
+    "description": "Triggers when CodePipeline execution state changes",
+    "event_pattern": {
+      "source": ["aws.codepipeline"],
+      "detail-type": ["CodePipeline Pipeline Execution State Change"],
+      "detail": {
+        "state": ["FAILED", "SUCCEEDED"]
+      }
+    }
+  },
+  
+  "then": {
+    "description": "Invoke PipelineValidator concept to analyze failure",
+    "targets": [
+      {
+        "id": "InvokePipelineValidator",
+        "arn": "arn:aws:lambda:us-east-1:${AWS_ACCOUNT}:function:pipeline-validator",
+        "input_transform": {
+          "comment": "Pass full event to validator",
+          "input_path": {}
+        }
+      }
+    ]
+  },
+  
+  "operational_principle": {
+    "description": "After pipeline fails -> validator analyzes -> result logged -> remediation triggered if needed",
+    "example": "Pipeline 'my-app' fails -> PipelineValidator checks logs -> determines cause -> returns structured result"
+  },
+  
+  "terraform_implementation": {
+    "resource_type": "aws_cloudwatch_event_rule",
+    "example": "See terraform/eventbridge.tf"
+  }
+}
+

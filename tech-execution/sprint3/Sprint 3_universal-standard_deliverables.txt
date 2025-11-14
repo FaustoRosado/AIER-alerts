@@ -1,0 +1,628 @@
+﻿�� Capstone Project • Sprint 3 Technical Architecture & Execution - (Workflow Integration) 
+Due: [Insert Date] • Points: 15 • Submission: Group (one file) • Applies to: All teams Team and Team Name: (e.g. DevSecOps | API 1, Security Lab, SOC, SIEM-as-a-Service, KMS) Note: You can reuse this template. 
+�� Overview 
+In Sprint 3 (Workflow Integration), your team transitions from building core infrastructure to integrating and validating end-to-end workflows. By the end of this sprint, you should have fully operational workflows that demonstrate how data flows through your system, how security controls are enforced, and how your solution responds to events in real-time. 
+This sprint emphasizes workflow continuity, automation, logging integration, and the introduction of compliance and governance frameworks. You will validate that all components work together seamlessly and begin mapping your technical controls to compliance requirements. 
+Your package includes: End-to-End Workflow Implementation, Advanced Logging & Monitoring Integration, Automated Response & Orchestration, Compliance Framework Mapping, Security Testing & Validation, Updated Architecture Documentation, and Team Member Contributions. 
+Use this Universal Capstone Project Rubric & Deliverable as your guideline when submitting your Sprints 
+�� Submission Package (one file) 
+● Cover Page: Team Name, Project Title, Members (roles), Course, Date ● Sections 1–7 (below) 
+● Appendix: Workflow diagrams, code snippets, screenshots, logs, compliance matrices, test results, references 
+Accepted formats: PDF or Word (.docx) or Google Doc (.gdoc) 
+✅ Quality Checklist (include this page in your submission) 
+● ☐ End-to-end workflows fully documented and validated with test cases ● ☐ All logging sources integrated and flowing to centralized platforms (CloudWatch, OpenSearch, Splunk, Wazuh)
+● ☐ Automated response mechanisms implemented (Lambda, Step Functions, EventBridge rules) 
+● ☐ Compliance framework mapping completed for at least 2 frameworks (PCI DSS, HIPAA, SOC 2, CIS, NIST CSF) 
+● ☐ Security testing performed with documented results (vulnerability scans, penetration tests, detection validation) 
+● ☐ Updated topology and workflow diagrams showing data flows, event triggers, and response paths 
+● ☐ IaC updated and version-controlled with meaningful commits 
+● ☐ Deployment evidence provided (screenshots, logs, video snippets) ● ☐ Team member contributions for Sprint 3 clearly documented 
+1. �� End-to-End Workflow Implementation 
+Definition: Demonstrate complete, functional workflows that show how your system processes events, data, and user actions from start to finish. This is the heart of Sprint 3. Complete the following: 
+A. Primary Workflow Documentation 
+For each major workflow in your project, provide: 
+● Workflow Name & Purpose: Clear title and business/technical objective ● Trigger: What initiates the workflow (user action, scheduled event, security finding, code commit, etc.) 
+● Step-by-Step Flow: Detailed sequence of actions across all components ● Services/Tools Involved: List all AWS services, third-party tools, and custom code ● Data Flow: Show how data moves between components (include data formats where relevant) 
+● Success Criteria: What defines successful completion 
+● Error Handling: How failures are detected and handled 
+B. Project-Specific Workflows (minimum 2-3 per project type): 
+DevSecOps: 
+● Workflow 1: Secure Code Deployment Pipeline 
+○ Trigger: Developer commits code to GitHub main branch 
+○ Flow: Commit → CodePipeline triggered → Source stage pulls code → Build stage (linting, SAST with Checkov/SonarQube, secret scanning with GitGuardian) → Container build and scan (Trivy/ECR scan) → Push to ECR → Deploy to ECS/EKS staging → Integration tests → Security validation → Deploy to 
+production (manual approval) → Post-deployment smoke tests → Slack/SNS notification 
+○ Services: CodePipeline, CodeBuild, ECR, ECS/EKS, Lambda, SNS, Secrets Manager ○ Evidence: Pipeline execution logs, scan results, deployment confirmation ● Workflow 2: Secret Rotation & Distribution
+○ Trigger: Scheduled rotation (30/60/90 days) or manual trigger 
+○ Flow: EventBridge scheduled rule → Lambda triggers Secrets Manager rotation → New secret generated → RDS/application credentials updated → CloudTrail logs rotation event → SNS notification to security team → Parameter Store updated for application access 
+○ Services: Secrets Manager, Lambda, EventBridge, RDS, Parameter Store, CloudTrail, SNS 
+○ Evidence: Rotation logs, CloudTrail events, application connectivity validation ● Workflow 3: Infrastructure Drift Detection & Remediation 
+○ Trigger: AWS Config detects configuration drift 
+○ Flow: Config rule violation detected → EventBridge captures event → Lambda evaluates drift → Step Functions orchestrates remediation → IaC re-applied via CodePipeline → Compliance restored → Security Hub updated → Alert sent to Slack 
+○ Services: Config, EventBridge, Lambda, Step Functions, CodePipeline, Security Hub, SNS 
+○ Evidence: Config rule violations, remediation logs, before/after screenshots Security Lab: 
+● Workflow 1: Automated Lab Provisioning & Access 
+○ Trigger: Student requests lab via web portal (API Gateway + Lambda) 
+○ Flow: Student authenticates via Cognito → Lambda validates eligibility → Step Functions orchestrates deployment → Terraform/CloudFormation provisions isolated VPC with vulnerable instances → Security groups configured → Student receives access credentials via email (SES) → Lab timer starts (EventBridge) → Student accesses lab via bastion host or Session Manager 
+○ Services: Cognito, API Gateway, Lambda, Step Functions, VPC, EC2, EventBridge, SES, Systems Manager 
+○ Evidence: Provisioning logs, student access confirmation, lab environment screenshots 
+● Workflow 2: Lab Monitoring & Scoring 
+○ Trigger: Student performs actions within lab environment 
+○ Flow: CloudWatch Logs captures student activity → Lambda parses logs for challenge completion indicators → DynamoDB updated with student progress → Real-time scoring dashboard updated → Hints released based on time/attempts → CloudWatch alarms trigger if suspicious activity detected 
+○ Services: CloudWatch Logs, Lambda, DynamoDB, CloudWatch Alarms, SNS ○ Evidence: Log samples, scoring logic code, dashboard screenshots 
+● Workflow 3: Automated Lab Teardown & Resource Cleanup 
+○ Trigger: Lab timer expires (EventBridge scheduled rule) or student completes lab ○ Flow: EventBridge triggers Lambda → Lambda validates lab completion status → Step Functions orchestrates teardown → Terraform destroy executed → VPC, 
+EC2, security groups deleted → S3 logs archived → Student receives completion certificate via SES → Cost tracking updated in DynamoDB 
+○ Services: EventBridge, Lambda, Step Functions, Terraform, S3, SES, DynamoDB
+○ Evidence: Teardown logs, resource deletion confirmation, cost reports SOC (Security Operations Center): 
+● Workflow 1: Multi-Source Alert Aggregation & Triage 
+○ Trigger: Security finding from GuardDuty, Security Hub, CloudTrail, or Wazuh ○ Flow: Finding generated → EventBridge captures event → Lambda enriches alert (IP reputation, user context, asset criticality) → Alert severity calculated → High-severity alerts sent to PagerDuty → All alerts indexed in OpenSearch → SOC dashboard updated → Analyst reviews in OpenSearch/Kibana → Ticket created in Jira/ServiceNow 
+○ Services: GuardDuty, Security Hub, CloudTrail, EventBridge, Lambda, 
+OpenSearch, SNS, PagerDuty 
+○ Evidence: Sample alerts, enrichment logic, dashboard screenshots, ticket creation logs 
+● Workflow 2: Automated Incident Response 
+○ Trigger: Critical security finding (e.g., GuardDuty detects compromised EC2 instance) 
+○ Flow: GuardDuty finding → EventBridge triggers Step Functions → Step 1: Lambda isolates instance (modify security group to deny all traffic) → Step 2: Lambda creates EBS snapshot for forensics → Step 3: Lambda tags instance as "quarantined" → Step 4: SNS notifies security team → Step 5: Systems Manager captures memory dump → Step 6: CloudTrail logs reviewed → Step 7: Incident ticket created with all evidence 
+○ Services: GuardDuty, EventBridge, Step Functions, Lambda, EC2, SNS, Systems Manager, CloudTrail 
+○ Evidence: Step Functions execution logs, isolated instance screenshots, forensic artifacts 
+● Workflow 3: Compliance Reporting & Metrics 
+○ Trigger: Scheduled monthly report generation (EventBridge) 
+○ Flow: EventBridge triggers Lambda → Lambda queries OpenSearch for security metrics (MTTR, MTTD, alert volume, top threats) → Athena queries S3 logs for compliance evidence → QuickSight generates executive dashboard → PDF report generated and stored in S3 → Report emailed to stakeholders via SES 
+○ Services: EventBridge, Lambda, OpenSearch, Athena, S3, QuickSight, SES ○ Evidence: Sample reports, dashboard screenshots, query results 
+SIEM (Security Information & Event Management): 
+● Workflow 1: Real-Time Log Ingestion & Normalization 
+○ Trigger: Continuous log generation from multiple sources 
+○ Flow: CloudTrail/VPC Flow Logs/GuardDuty/Application Logs → CloudWatch Logs → Kinesis Data Firehose → Lambda parses and normalizes logs (JSON 
+transformation) → OpenSearch/Splunk indexes logs → Correlation rules applied → Dashboards updated in real-time 
+○ Services: CloudTrail, VPC Flow Logs, CloudWatch Logs, Kinesis Firehose, Lambda, OpenSearch/Splunk 
+○ Evidence: Log samples (raw and normalized), parsing logic, ingestion metrics
+● Workflow 2: Threat Detection & Correlation 
+○ Trigger: Suspicious pattern detected across multiple log sources 
+○ Flow: OpenSearch/Splunk correlation rule detects anomaly (e.g., multiple failed logins followed by successful login from different IP) → Alert generated → Lambda enriches with threat intelligence (VirusTotal, AbuseIPDB) → Alert severity assigned → High-severity alerts trigger Step Functions → Automated containment actions executed → Analyst notified via PagerDuty → Investigation workflow initiated 
+○ Services: OpenSearch/Splunk, Lambda, Step Functions, EventBridge, PagerDuty, external threat intel APIs 
+○ Evidence: Correlation rule definitions, sample detections, enrichment results ● Workflow 3: Long-Term Log Retention & Compliance 
+○ Trigger: Logs reach retention threshold in OpenSearch/Splunk 
+○ Flow: S3 lifecycle policy moves logs from Standard to Glacier after 90 days → Glue ETL job transforms logs for compliance queries → Lake Formation enforces access controls → Athena enables ad-hoc querying for audits → Compliance reports generated quarterly → Logs retained for 7 years per regulatory 
+requirements 
+○ Services: S3, Glacier, Glue, Lake Formation, Athena, Lambda 
+○ Evidence: Lifecycle policies, Glue job logs, sample Athena queries, retention validation 
+KMS (Key Management Service): 
+● Workflow 1: Centralized Key Management & Rotation 
+○ Trigger: Scheduled key rotation (annual) or manual trigger 
+○ Flow: KMS automatic key rotation enabled → New key material generated → Old key material retained for decryption → CloudTrail logs rotation event → Lambda validates all encrypted resources still accessible → Compliance dashboard updated → Security team notified via SNS 
+○ Services: KMS, CloudTrail, Lambda, SNS 
+○ Evidence: Key rotation logs, CloudTrail events, resource encryption validation ● Workflow 2: Encryption at Rest & In Transit 
+○ Trigger: New resource created (S3 bucket, RDS database, EBS volume) ○ Flow: Resource created via IaC → KMS CMK automatically applied → Bucket policy/resource policy enforces encryption → CloudTrail logs encryption events → Config rule validates encryption compliance → Security Hub displays 
+compliance status → Non-compliant resources trigger Lambda remediation ○ Services: KMS, S3, RDS, EBS, CloudTrail, Config, Security Hub, Lambda ○ Evidence: Encrypted resource screenshots, policy documents, Config rule results ● Workflow 3: Secret Access & Audit Trail 
+○ Trigger: Application requests secret from Secrets Manager 
+○ Flow: Application authenticates via IAM role → Secrets Manager retrieves secret → KMS decrypts secret using CMK → Secret returned to application → 
+CloudTrail logs access event (who, when, which secret) → CloudWatch Logs
+captures access → Athena queries enable audit reports → Anomalous access patterns trigger CloudWatch alarm → Security team alerted 
+○ Services: Secrets Manager, KMS, IAM, CloudTrail, CloudWatch Logs, Athena, CloudWatch Alarms, SNS 
+○ Evidence: Access logs, audit queries, anomaly detection results 
+C. Workflow Diagrams 
+● Create detailed workflow diagrams for each primary workflow using diagrams.net, Lucidchart, or similar tools 
+● Include: trigger points, decision nodes, data flows, service interactions, error paths, and success/failure outcomes 
+● Use consistent notation (e.g., AWS Architecture Icons, BPMN notation) D. Workflow Validation & Testing 
+For each workflow, document: 
+● Test Case Name: Descriptive title 
+● Test Objective: What you're validating 
+● Test Steps: Detailed procedure to execute the workflow 
+● Expected Result: What should happen 
+● Actual Result: What actually happened 
+● Evidence: Screenshots, logs, video clips 
+● Issues Encountered: Blockers, bugs, or unexpected behavior 
+● Resolution: How you fixed it or plan to address in Sprint 4 
+Example: 
+● Test Case: DevSecOps Pipeline Security Gate Validation 
+● Objective: Verify that pipeline blocks deployment when critical vulnerabilities detected ● Steps: 1) Commit code with known vulnerability (Log4Shell), 2) Pipeline triggers, 3) Trivy scan runs, 4) Critical CVE detected 
+● Expected: Pipeline fails at security gate; deployment blocked; Slack notification sent ● Actual: Pipeline failed as expected; notification received within 2 minutes ● Evidence: Screenshot of failed pipeline, Trivy scan output, Slack message ● Issues: Initial scan timeout due to large image size; resolved by optimizing Dockerfile layers 
+Tip: Aim for 2-3 test cases per workflow. Keep test scripts in GitHub for repeatability. 
+2. �� Advanced Logging & Monitoring Integration 
+Definition: Demonstrate comprehensive logging, monitoring, and observability across all system components. All security-relevant events must be captured, centralized, and queryable. Complete the following: 
+A. Logging Architecture 
+● Log Sources: List all sources generating logs (CloudTrail, VPC Flow Logs, GuardDuty, Config, application logs, Wazuh agents, etc.)
+● Log Destinations: Where logs are sent (CloudWatch Logs, S3, OpenSearch, Splunk, Wazuh manager) 
+● Log Flow Diagram: Visual representation of log ingestion pipeline 
+● Log Retention Policies: Retention periods for each log type (e.g., CloudTrail 90 days in CloudWatch, 7 years in S3/Glacier) 
+● Log Encryption: Confirm all logs encrypted at rest (KMS) and in transit (TLS) B. Centralized Logging Implementation 
+All Projects: 
+● CloudTrail: Organization trail enabled; logs to S3 with SSE-KMS; CloudWatch Logs integration; Insights enabled for anomaly detection 
+● VPC Flow Logs: Enabled for all VPCs; logs to CloudWatch Logs or S3; analyzed for network anomalies 
+● CloudWatch Logs: Log groups organized by service/application; retention policies configured; metric filters for key events 
+● Security Hub: Aggregating findings from GuardDuty, Config, IAM Access Analyzer, Macie, Inspector 
+● Config: Recording all resource changes; compliance rules active; aggregator for multi-account 
+Project-Specific Logging: 
+DevSecOps: 
+● CodePipeline execution logs to CloudWatch 
+● Container logs from ECS/EKS to CloudWatch Logs (Fluent Bit/FireLens) ● Application logs structured (JSON) for parsing 
+● Build logs retained for audit trail 
+Security Lab: 
+● Student activity logs captured via CloudWatch Logs 
+● Lab provisioning/teardown events logged 
+● Access logs for bastion hosts/Session Manager 
+● Challenge completion events tracked 
+SOC: 
+● Multi-tenant log segregation (separate log groups or indexes per tenant) ● Alert logs with enrichment metadata 
+● Analyst action logs (who investigated what, when) 
+● Incident response timeline logs 
+SIEM: 
+● All log sources feeding into centralized SIEM (OpenSearch/Splunk) 
+● Log parsing and normalization documented 
+● Correlation rule execution logs 
+● Query performance metrics 
+KMS: 
+● All KMS API calls logged via CloudTrail 
+● Encryption/decryption events tracked 
+● Key rotation events logged 
+● Anomalous key usage alerts configured
+C. Monitoring & Alerting 
+● CloudWatch Dashboards: Create dashboards showing key metrics (pipeline success rate, alert volume, log ingestion rate, resource utilization) 
+● CloudWatch Alarms: Configure alarms for critical events (pipeline failures, high-severity findings, log ingestion delays, cost thresholds) 
+● SNS Topics: Alert routing to appropriate teams (security, operations, development) ● PagerDuty/Opsgenie Integration: For high-severity incidents requiring immediate response 
+● Project-Specific Dashboards: 
+○ DevSecOps: Pipeline health, deployment frequency, security scan results, DORA metrics 
+○ Security Lab: Active labs, student progress, resource utilization, cost per lab ○ SOC: Alert volume by severity, MTTR, MTTD, top threats, analyst workload ○ SIEM: Log ingestion rate, correlation rule hits, storage utilization, query performance 
+○ KMS: Key usage metrics, rotation status, encryption coverage, access patterns D. Evidence 
+● Screenshots of CloudWatch dashboards 
+● Sample CloudWatch Logs queries and results 
+● Log flow validation (show logs appearing in destination within expected timeframe) ● Alert configuration screenshots 
+● Sample alerts triggered during testing 
+Tip: Use CloudWatch Logs Insights for ad-hoc queries; save useful queries for reuse. Tag all log groups consistently. 
+3. �� Automated Response & Orchestration 
+Definition: Implement automated responses to security events, operational issues, and workflow triggers. Reduce manual intervention and improve response times. Complete the following: 
+A. Automation Architecture 
+● Event Sources: What triggers automation (GuardDuty findings, Config violations, CloudTrail events, scheduled rules, API calls) 
+● Orchestration Tools: EventBridge rules, Lambda functions, Step Functions state machines, Systems Manager Automation documents 
+● Response Actions: What automated actions are taken (isolate instance, rotate credentials, send alerts, create tickets, remediate drift) 
+B. Implemented Automations (minimum 2-3 per project) 
+All Projects: 
+● Automated Compliance Remediation: Config detects non-compliant resource → EventBridge triggers Lambda → Lambda remediates (e.g., enable encryption, apply security group, add tags) → Security Hub updated 
+● Automated Alerting: High-severity finding → EventBridge triggers Lambda → Lambda enriches alert → SNS/PagerDuty notification sent
+● Automated Backup/Snapshot: Scheduled EventBridge rule → Lambda creates snapshots of critical resources → Snapshots tagged and retained per policy 
+Project-Specific Automations: 
+DevSecOps: 
+● Automated Rollback: Deployment fails post-deployment tests → Lambda triggers rollback to previous version → Team notified 
+● Automated Secret Rotation: Secrets Manager rotates credentials → Lambda updates application configuration → Zero downtime 
+● Automated Scaling: CloudWatch alarm detects high CPU → Auto Scaling Group scales out → CloudWatch logs scaling event 
+Security Lab: 
+● Automated Lab Teardown: EventBridge scheduled rule triggers Lambda → Lambda destroys lab resources → Student notified 
+● Automated Hint Release: DynamoDB tracks student progress → Lambda releases hints after time threshold → Student receives hint via web portal 
+● Automated Cost Control: CloudWatch alarm detects cost threshold → Lambda stops non-essential labs → Admin notified 
+SOC: 
+● Automated Incident Containment: GuardDuty detects compromised instance → Step Functions isolates instance, creates snapshot, notifies team → Incident ticket created ● Automated Threat Intelligence Enrichment: Alert generated → Lambda queries VirusTotal/AbuseIPDB → Enriched alert sent to analyst 
+● Automated Escalation: Alert unacknowledged for 15 minutes → Lambda escalates to senior analyst → PagerDuty escalation policy triggered 
+SIEM: 
+● Automated Log Parsing: New log format detected → Lambda updates parsing rules → Logs normalized and indexed 
+● Automated Correlation Rule Deployment: New rule committed to GitHub → CodePipeline deploys to OpenSearch/Splunk → Rule active within minutes ● Automated Report Generation: Scheduled EventBridge rule → Lambda queries SIEM → Report generated and emailed 
+KMS: 
+● Automated Key Rotation Validation: Key rotated → Lambda validates all encrypted resources accessible → Compliance dashboard updated 
+● Automated Encryption Enforcement: New S3 bucket created without encryption → Config detects → Lambda applies KMS encryption → Bucket policy updated ● Automated Access Anomaly Detection: CloudWatch Logs Insights detects unusual key access pattern → Lambda triggers alert → Security team investigates 
+C. Step Functions State Machines (if applicable) 
+● Provide state machine definitions (JSON/YAML) 
+● Diagram showing state transitions 
+● Execution logs showing successful runs 
+● Error handling and retry logic documented 
+D. Evidence
+● Lambda function code snippets (in appendix) 
+● EventBridge rule configurations 
+● Step Functions execution history 
+● Before/after screenshots showing automated remediation 
+● Logs demonstrating automated responses 
+Tip: Start with simple automations (e.g., SNS notifications) and build up to complex orchestrations (Step Functions). Test failure scenarios. 
+4. �� Compliance Framework Mapping 
+Definition: Map your technical controls to compliance frameworks. This demonstrates that your solution meets regulatory and industry standards. 
+Complete the following: 
+A. Framework Selection 
+Select at least 2 frameworks relevant to your project: 
+● PCI DSS (Payment Card Industry Data Security Standard) – for systems handling payment data 
+● HIPAA (Health Insurance Portability and Accountability Act) – for healthcare data ● SOC 2 (Service Organization Control 2) – for SaaS providers 
+● CIS Controls (Center for Internet Security) – general security best practices ● NIST Cybersecurity Framework – comprehensive security framework ● ISO 27001 – information security management 
+● FedRAMP – for government cloud services 
+B. Compliance Matrix 
+Create a table mapping your AWS services and controls to framework requirements:
+Framework Control
+	Control 
+Description
+	AWS 
+Service/Feature
+	Implementatio n Status
+	Evidence Location
+	Notes
+	PCI DSS 10.1 
+	Implement 
+audit trails
+	CloudTrail, 
+CloudWatch 
+Logs
+	✅ 
+Implemented
+	Section 2, Appendix A
+	Organization trail enabled; 90-day 
+retention
+	PCI DSS 3.4 
+	Render PAN unreadable
+	KMS, S3 
+encryption
+	✅ 
+Implemented
+	Section 1, Appendix B
+	All S3 buckets encrypted 
+with CMK
+	HIPAA 
+164.312(a)( 1)
+	Access 
+controls
+	IAM, Cognito, 
+MFA
+	✅ 
+Implemented
+	Sprint 2 
+report
+	Least-privileg e roles; MFA enforced
+	HIPAA 
+164.312(e)( 1)
+	Transmission security
+	TLS, VPN, 
+PrivateLink
+	�� In Progress 
+	Sprint 4 
+	TLS 1.2+ 
+enforced; 
+VPN planned
+	
+
+
+
+CIS Control 8.2
+	Collect audit logs
+	CloudTrail, VPC Flow Logs
+	✅ 
+Implemented
+	Section 2 
+	Centralized 
+logging to S3
+	NIST CSF 
+PR.AC-4
+	Least 
+privilege
+	IAM policies, 
+SCPs
+	✅ 
+Implemented
+	Sprint 2 
+report
+	Role-based 
+access; SCPs active
+	
+
+
+
+Legend: 
+● ✅ Implemented 
+● �� In Progress 
+● ⏳ Planned 
+● ❌ Not Applicable 
+C. Compliance Evidence 
+For each implemented control, provide evidence: 
+● Screenshots: Config rules, Security Hub compliance scores, IAM policies, encryption settings 
+● Logs: CloudTrail events, access logs, audit trails 
+● Policies: IAM policies, bucket policies, KMS key policies 
+● Configurations: Security group rules, NACLs, encryption settings 
+D. Compliance Gaps & Remediation Plan 
+● Identify controls not yet implemented 
+● Provide timeline for implementation (Sprint 4, Sprint 5, post-MVP) 
+● Assign ownership for each gap 
+Example: 
+● Gap: HIPAA 164.312(e)(1) – VPN for remote access not yet implemented ● Remediation: Deploy AWS Client VPN in Sprint 4 
+● Owner: Infrastructure Engineer (Jamie Chan) 
+● Target Date: End of Sprint 4 
+E. Project-Specific Compliance Considerations 
+DevSecOps: 
+● Focus on secure SDLC, code integrity, supply chain security 
+● Relevant frameworks: NIST SSDF, CIS Controls, SOC 2 
+Security Lab: 
+● Focus on data isolation, student privacy, secure access 
+● Relevant frameworks: FERPA (if educational data), ISO 27001, CIS Controls SOC: 
+● Focus on incident response, audit trails, SLA compliance 
+● Relevant frameworks: SOC 2, ISO 27001, NIST CSF 
+SIEM: 
+● Focus on log retention, data protection, audit capabilities 
+● Relevant frameworks: PCI DSS, HIPAA, SOC 2, GDPR (if EU data) 
+KMS: 
+● Focus on key management, encryption, access controls 
+● Relevant frameworks: PCI DSS, HIPAA, FedRAMP, FIPS 140-2
+Tip: Use AWS Security Hub compliance standards as a starting point. Enable CIS AWS Foundations Benchmark and PCI DSS standards. 
+5. ️ Security Testing & Validation 
+Definition: Perform security testing to validate that your controls are effective and your system is resilient against threats. 
+Complete the following: 
+A. Vulnerability Scanning 
+● Tools Used: AWS Inspector, Tenable Nessus, Qualys, OpenVAS 
+● Scope: EC2 instances, container images, network configurations 
+● Scan Results: Summary of findings by severity (Critical, High, Medium, Low) ● Remediation: Document how critical/high findings were addressed 
+● Evidence: Scan reports (sanitized), before/after comparisons 
+B. Penetration Testing (if applicable) 
+● Scope: Define what was tested (web application, API, network, IAM) 
+● Methodology: OWASP Top 10, PTES, MITRE ATT&CK 
+● Tools: Burp Suite, OWASP ZAP, Metasploit, Kali Linux tools 
+● Findings: Document vulnerabilities discovered 
+● Remediation: How findings were fixed 
+● Evidence: Test reports, screenshots, remediation validation 
+Note: Ensure penetration testing complies with AWS Customer Support Policy for Penetration Testing. Submit request if required. 
+C. Detection Rule Validation 
+Test that your detection rules work as intended: 
+● Test Scenario: Simulate malicious activity (e.g., unauthorized API call, port scan, privilege escalation attempt) 
+● Expected Detection: Which rule/service should detect it (GuardDuty, Wazuh, custom SIEM rule) 
+● Actual Detection: Did the alert fire? How long did it take? 
+● Response: Was automated response triggered? Was analyst notified? ● Evidence: Alert screenshots, logs, response actions 
+Example Test Cases: 
+All Projects: 
+● Test: Simulate unauthorized S3 bucket access 
+● Expected: GuardDuty detects "UnauthorizedAccess:S3/MaliciousIPCaller.Custom" ● Actual: Alert fired within 5 minutes; Lambda isolated bucket; SNS notification sent ● Evidence: GuardDuty finding, Lambda logs, SNS message 
+DevSecOps: 
+● Test: Commit code with hardcoded AWS credentials 
+● Expected: GitGuardian/TruffleHog detects secret; pipeline fails 
+● Actual: Secret detected; pipeline blocked; developer notified 
+● Evidence: Pipeline logs, secret detection report 
+Security Lab:
+● Test: Student attempts to access another student's lab 
+● Expected: Security group blocks access; CloudWatch alarm fires 
+● Actual: Access denied; alarm triggered; admin notified 
+● Evidence: VPC Flow Logs, CloudWatch alarm, security group rules 
+SOC: 
+● Test: Simulate brute-force login attempts 
+● Expected: CloudWatch Logs Insights detects pattern; alert generated ● Actual: Alert fired after 5 failed attempts; analyst notified via PagerDuty ● Evidence: CloudWatch Logs query, alert, PagerDuty notification 
+SIEM: 
+● Test: Inject malicious log entries 
+● Expected: Correlation rule detects anomaly; alert generated 
+● Actual: Rule triggered; alert enriched with threat intel; analyst dashboard updated ● Evidence: Correlation rule definition, alert, dashboard screenshot 
+KMS: 
+● Test: Attempt to use KMS key without proper IAM permissions 
+● Expected: Access denied; CloudTrail logs event; CloudWatch alarm fires ● Actual: Access denied; event logged; alarm triggered within 1 minute ● Evidence: CloudTrail log, CloudWatch alarm, IAM policy 
+D. Chaos Engineering / Failure Testing (optional but recommended) 
+● Test system resilience by intentionally causing failures 
+● Examples: Terminate EC2 instance, delete security group rule, simulate network partition, exceed rate limits 
+● Document: What failed, how system recovered, lessons learned 
+E. Security Testing Summary 
+● Total Tests Conducted: [Number] 
+● Critical Findings: [Number] – [Status: Remediated/In Progress] 
+● High Findings: [Number] – [Status] 
+● Medium/Low Findings: [Number] – [Status] 
+● Detection Success Rate: [Percentage of tests where detection worked as expected] ● Mean Time to Detect (MTTD): [Average time from event to detection] ● Mean Time to Respond (MTTR): [Average time from detection to response action] 
+Tip: Document all testing in a controlled environment. Never test in production without proper change management. 
+6. �� Updated Architecture Documentation 
+Definition: Evolve your architecture diagrams and documentation to reflect Sprint 3 progress. Complete the following: 
+A. Updated Topology Diagram 
+● Show all components from Sprint 2 plus new additions in Sprint 3 
+● Highlight workflow paths with arrows and labels 
+● Include: event triggers, data flows, logging paths, response actions 
+● Use color coding: green for data flow, red for alerts, blue for automation
+● Label all AWS services, third-party tools, and custom components 
+B. Workflow Diagrams 
+● Detailed diagrams for each primary workflow (from Section 1) 
+● Use standard notation (BPMN, flowchart, sequence diagram) 
+● Show decision points, error paths, and success/failure outcomes 
+C. Data Flow Diagrams 
+● Show how data moves through your system 
+● Include: data sources, transformation points, storage locations, access controls ● Label data classification (public, internal, confidential, restricted) 
+D. Security Architecture Diagram 
+● Focus on security controls and boundaries 
+● Show: security groups, NACLs, IAM roles, encryption points, logging, monitoring ● Highlight defense-in-depth layers 
+E. Well-Architected Framework Alignment 
+Map your architecture to AWS Well-Architected pillars: 
+● Operational Excellence: Automation, IaC, monitoring, incident response ● Security: IAM, encryption, logging, detection, compliance 
+● Reliability: Multi-AZ, backups, auto-scaling, fault tolerance 
+● Performance Efficiency: Right-sizing, caching, CDN, serverless 
+● Cost Optimization: Tagging, budgets, reserved instances, lifecycle policies ● Sustainability: Efficient resource usage, serverless, right-sizing 
+Provide 2-3 specific examples per pillar showing how your architecture aligns. F. Changes Since Sprint 2 
+● Summarize key architectural changes made in Sprint 3 
+● Explain rationale for changes 
+● Highlight improvements in security, automation, or efficiency 
+Tip: Use AWS Architecture Icons (official icon set) for consistency. Export diagrams as PNG/SVG for embedding in report. 
+7. �� Team Member Contributions (Sprint 3) 
+Definition: Clear breakdown of who did what this sprint. Accountability and collaboration are critical. 
+Complete the following: 
+A. Role Assignments 
+● Team Lead 
+● Project Manager (optional) 
+● Infrastructure Engineer 
+● Security Analyst 
+● DevSecOps Engineer 
+● SIEM Engineer 
+● Developer 
+● Documentation Owner 
+B. Individual Contributions
+For each team member, provide: 
+● Name & Role 
+● Sprint 3 Accomplishments: Specific, measurable contributions 
+● GitHub Activity: PRs merged, commits, issues closed 
+● Jira/Trello Activity: Tasks completed, story points 
+● Artifacts Produced: Code, documentation, diagrams, test results 
+Example Contributions: 
+● Jamie Chan (Infrastructure Engineer): 
+○ Implemented Step Functions state machine for automated incident response (PR #45) 
+○ Configured VPC Flow Logs to OpenSearch pipeline with Lambda parsing (PR #47) ○ Created CloudWatch dashboard for SOC metrics (MTTR, MTTD, alert volume) ○ Validated end-to-end workflow for alert aggregation (Test Case 1-3) 
+○ GitHub: 23 commits, 3 PRs merged 
+● Carl Benett (Security Analyst): 
+○ Completed compliance matrix mapping to PCI DSS and HIPAA (15 controls) ○ Conducted vulnerability scans with AWS Inspector; remediated 8 high-severity findings 
+○ Validated GuardDuty detection rules with 5 test scenarios; 100% detection success rate 
+○ Documented security testing results in Section 5 
+○ GitHub: 12 commits, 2 PRs merged 
+● Jose Santos (DevSecOps Engineer): 
+○ Enhanced CI/CD pipeline with automated rollback on failed smoke tests (PR #48) ○ Integrated GitGuardian for secret scanning; blocked 2 commits with exposed credentials 
+○ Implemented Secrets Manager rotation for RDS credentials with zero downtime ○ Created workflow diagram for secure code deployment pipeline 
+○ GitHub: 18 commits, 4 PRs merged 
+● Jessica Jackson (SIEM Engineer): 
+○ Deployed Kinesis Firehose pipeline for real-time log ingestion to OpenSearch ○ Created 6 correlation rules for threat detection (mapped to MITRE ATT&CK) ○ Built OpenSearch dashboard for log ingestion metrics and correlation rule hits ○ Validated log parsing and normalization for 4 log sources 
+○ GitHub: 15 commits, 3 PRs merged 
+● Donna White (Developer): 
+○ Developed Lambda functions for alert enrichment with threat intelligence APIs (PR #49) 
+○ Created API Gateway + Lambda for Security Lab student portal 
+○ Implemented DynamoDB schema for student progress tracking 
+○ Unit tests for all Lambda functions; 95% code coverage 
+○ GitHub: 20 commits, 5 PRs merged 
+● Melanie Pascual (Documentation Owner): 
+○ Updated all architecture diagrams with Sprint 3 components (6 diagrams)
+○ Documented 8 end-to-end workflows with test cases and evidence 
+○ Organized appendix with screenshots, logs, and code snippets 
+○ Maintained Sprint 3 report; ensured quality checklist completion 
+○ GitHub: 10 commits (documentation), 1 PR merged 
+C. Collaboration Evidence 
+● GitHub Insights: Commit history, PR reviews, branch activity 
+● Jira/Trello Board: Sprint board snapshot showing task distribution and completion ● Stand-up Notes: Summary of daily stand-ups or weekly sync meetings ● Peer Feedback: Optional peer evaluations or kudos 
+Tip: Use GitHub's "Insights" tab to generate contribution graphs. Be specific and quantify contributions where possible. 
+�� Grading Rubric (30 pts)
+Criterion 
+	Exceeds (Full Pts) 
+	Meets 
+(Partial)
+	Below 
+(Low/None)
+	Points
+	End-to-End 
+Workflow 
+Implementatio n
+	2-3 complete workflows 
+documented with detailed steps, diagrams, test cases, and 
+evidence; all workflows validated and functional; project-specific workflows clearly demonstrated
+	1-2 workflows documented; some gaps in detail, testing, or evidence; 
+workflows 
+mostly 
+functional
+	Workflows 
+incomplete, 
+unclear, or 
+not 
+validated; 
+missing test 
+cases or 
+evidence
+	8
+	Advanced 
+Logging & 
+Monitoring 
+Integration
+	Comprehensive logging from all sources; centralized in 
+CloudWatch/OpenSearch/Splunk; dashboards and alarms 
+configured; log retention and encryption documented; 
+evidence provided
+	Most log 
+sources 
+integrated; 
+some gaps in centralization, dashboards, or documentatio n
+	Limited 
+logging 
+integration; 
+missing 
+centralization or 
+monitoring; 
+no evidence
+	5
+	Automated 
+Response & 
+Orchestration
+	2-3 automations implemented using Lambda, Step Functions, EventBridge; well-documented with code, diagrams, and 
+execution logs; error handling demonstrated
+	1-2 
+automations 
+implemented; limited 
+documentatio n or error 
+handling
+	Minimal or 
+no 
+automation; not 
+documented or validated
+	5
+	
+
+
+
+Compliance 
+Framework 
+Mapping
+	Detailed compliance matrix for 2+ frameworks; controls mapped to AWS services; evidence 
+provided; gaps identified with remediation plan
+	Compliance 
+matrix for 1-2 frameworks; 
+some gaps in mapping, 
+evidence, or 
+remediation 
+plan
+	Minimal or 
+incomplete 
+compliance 
+mapping; no evidence or 
+remediation plan
+	5
+	Security Testing & Validation
+	Comprehensive testing 
+(vulnerability scans, detection validation, penetration testing); findings documented and 
+remediated; test cases with evidence; metrics provided (MTTD, MTTR)
+	Some security testing 
+performed; 
+limited 
+findings, 
+remediation, 
+or evidence
+	Minimal or 
+no security 
+testing; no 
+evidence or 
+metrics
+	4
+	Updated 
+Architecture 
+Documentation
+	Detailed, accurate diagrams (topology, workflow, data flow, security); Well-Architected alignment; clear evolution from Sprint 2; professional quality
+	Diagrams 
+present and 
+mostly 
+accurate; 
+some gaps in detail or 
+Well-Architect ed alignment
+	Diagrams 
+incomplete, 
+unclear, or 
+do not reflect Sprint 3 
+progress
+	2
+	Team Member Contributions
+	All members' contributions clearly documented with specific, measurable accomplishments; GitHub/Jira activity referenced; collaboration evidence provided
+	Contributions documented but lack 
+specificity or 
+references; 
+some 
+members' 
+contributions unclear
+	Contributions unclear or 
+missing for 
+some 
+members; no collaboration evidence
+	1
+	
+
+
+
+Total: 30 points 
+�� Formatting & Submission 
+● File: Single PDF or Word document 
+● Naming: [TeamName]_Sprint3_WorkflowIntegration_[YYYYMMDD].pdf ● Citations: APA/MLA where applicable 
+● Diagrams & Code: Embed images (PNG/JPG) and code snippets in appendix ● GitHub: Ensure repo access for instructor (public or shared)
+● Third-Party Tool Access: If applicable, provide read-only access credentials or screenshots for Wazuh/Splunk/OpenSearch dashboards 
+�� Notes for Students 
+● Workflow First: Sprint 3 is about proving your system works end-to-end. Focus on integration and validation. 
+● Test Everything: Don't assume workflows work—validate with test cases and document results. 
+● Automate Aggressively: Manual processes don't scale. Automate responses, remediation, and reporting. 
+● Compliance Early: Starting compliance mapping now makes Sprint 4-5 easier and demonstrates maturity. 
+● Security Testing: Find vulnerabilities before your evaluators do. Document findings and fixes. 
+● Document as You Build: Don't wait until the end of the sprint to document. Capture screenshots and logs as you work. 
+● Collaboration: Sprint 3 requires tight coordination. Daily stand-ups and clear task assignments are critical. 
+● GitHub Discipline: Meaningful commits, PR reviews, and branch management show professionalism. 
+● Cost Awareness: Monitor AWS costs daily. Use tags for cost allocation. Leverage free tiers and stop resources when not in use. 
+● Ask for Help: If blocked, reach out to instructors or peers. Don't wait until the last minute. 
+�� Sprint 3 Success Criteria 
+By the end of Sprint 3, your team should be able to: 
+✅ Demonstrate 2-3 complete, functional workflows from trigger to completion ✅ Show centralized logging and monitoring across all system components ✅ Execute automated responses to security events and operational issues ✅ Map technical controls to at least 2 compliance frameworks 
+✅ Validate security controls through testing with documented results 
+✅ Present updated architecture diagrams reflecting Sprint 3 progress 
+✅ Document clear, measurable contributions from all team members 
+Sprint 3 sets the foundation for Sprint 4 (Advanced Security Features) and Sprint 5 (Business & Operational Readiness). Strong execution now will make the final sprints smoother and your MVP more impressive.

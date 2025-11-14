@@ -1,0 +1,178 @@
+﻿WORK IN PROGRESS. THIS IS NOT FINALIZED
+________________
+
+
+🚀 Capstone Project • Sprint 3 Technical
+Architecture & Execution - (Workflow
+Integration)
+________________
+
+
+Due: 10/27/2025 • Team: DevSecOps | API 1 (AiER) • Course: Cyber Security
+
+
+Members (roles)
+	👥Members
+	📜Roles
+	Cuong Huy Nguyen
+	AI Dev/Security Engineer 
+	Fausto Rosado
+	Frontend and IAC Dev
+	Javier Acosta
+	API Dev/Documentation
+	Sheniese Aracena-Baez
+	Project Management/ Security Engineer
+	
+
+________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. 🔄 End-to-End Workflow Implementation
+
+
+________________
+
+
+A. Primary Workflow Documentation (Application Data Flow)[a]
+
+
+Workflow Name & Purpose: Hybrid Deployment (On-Prem Inference + AWS Edge Routing). The goal is to maintain on-prem data control with AWS perimeter protection (WAF/Shield) and cloud-assisted failover.
+
+
+DevSecOps Responsibility: Configuring the AWS Edge layer (ALB, WAF, Shield), setting up the secure WireGuard/Tailscale tunnel backhaul, implementing Route 53 health checks for automated failover, and enforcing strict allow-list egress.
+
+Trigger: Client (operator or analyst) initiates an inference request.
+
+
+Step-by-Step Flow (End-to-End Flow):
+
+
+1. Client initiates request.
+2. Route 53 DNS lookup resolves to AWS Edge endpoint. 
+3. Edge (ALB) performs TLS termination, WAF/Shield protection, and JWT verification.
+4. Target group routes request to AWS gateway host.
+5. Encrypted tunnel (WireGuard or Tailscale) forwards request to on-prem inference node.
+6. On-prem Host firewall and mTLS handshake validate connection to inference API.
+7. Model runtime verifies GGUF with model keys
+8. Response travels back through the tunnel, AWS Edge, and to the client.
+
+
+* Services/Tools Involved: Route 53, Edge (ALB, WAF, Shield), WireGuard or Tailscale tunnel, On-prem firewall, CloudWatch logs.
+
+
+* Error Handling/Success Criteria missing for now.
+
+
+
+
+
+
+________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+B. Project-Specific Workflows (DevSecOps Pipeline)
+
+
+Workflow 1: Secure Code Deployment Pipeline (IaC)
+
+
+Workflow Name & Purpose: DevSecOps IaC Pipeline Enforcement. To validate, secure, and deploy all infrastructure as code changes only after satisfying dual approval and security gate requirements.
+
+
+Trigger: A Pull Request targeting the main branch is opened, or a successful merge occurs to the main branch.
+
+
+ Step-by-Step Flow (End-to-End Flow):
+
+
+1. Developer pushes code/opens PR.
+2. GitHub Actions runs Gated Validation checks (Lint, Validate, CI Plan).
+3. Branch Protection (Security Gate) requires: a) All status checks pass, b) Signed commits are verified, and c) At least one approving review is submitted.
+4. Upon successful merge to main, the apply job is triggered.
+5. Terraform Apply provisions the resources in AWS.
+
+
+* Services/Tools Involved: GitHub, GitHub Actions, Terraform, Branch Protection.
+
+
+* Success Criteria: Terraform apply job completes successfully, reporting resources added/changed (e.g., "Resources: 12 added").
+
+
+* Error Handling: If any status check fails (Lint, Validate, CI), the PR merge is blocked.
+
+
+Workflow 2: Automated Secret Push Protection
+
+
+Workflow Name & Purpose: Preventative secret scanning and slocking. To prevent hardcoded credentials or sensitive tokens from ever entering the source code history, ensuring code integrity.
+
+
+Trigger: A developer attempts to execute a git push command containing new code.
+
+
+ Step-by-Step Flow (End-to-End Flow):
+
+
+1. Developer attempts to push code containing a secret pattern (through a AWS Access Key).
+2. GitHub Advanced Security's push protection runs a real-time scan on the commit content.
+3. If a secret is detected, the push command is blocked immediately.
+4. The developer receives a terminal error and must remove the secret before a successful push.
+
+
+* Services/Tools Involved: GitHub Advanced Security, Git CLI.
+
+
+* Success Criteria: A test push containing a secret is blocked, and the secret is not visible in the repository history.
+
+
+
+
+________________
+
+
+C. Workflow Diagrams
+
+
+
+
+  
+
+
+
+
+
+
+
+[a]I may have mixed some steps here. Doing some research.
+I am also still in the process of cleaning up the document
+
+
+Triggers for each workflow was requested on em's sample doc
