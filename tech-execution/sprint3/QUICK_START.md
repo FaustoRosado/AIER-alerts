@@ -171,7 +171,7 @@ All questions answered in main documentation:
 
 ---
 
-**Branch**: `sprint3-resubmission`  
+**Branch**: `sprint3-v2`  
 **Commit**: `464bc5e`  
 **Status**: ✅ Complete and tested
 

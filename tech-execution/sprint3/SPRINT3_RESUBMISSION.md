@@ -2,7 +2,7 @@
 
 **Team**: DevSecOps | AI-SIEM Infrastructure  
 **Date**: November 14, 2025  
-**Branch**: `sprint3-resubmission`  
+**Branch**: `sprint3-v2`  
 **Design Pattern**: Concepts & Synchronizations (based on "A Structural Pattern for Legible Software")
 
 ---
@@ -1665,7 +1665,7 @@ Sprint 4 will build on this foundation with:
 ---
 
 **Submission Date**: November 14, 2025  
-**Branch**: `sprint3-resubmission`  
+**Branch**: `sprint3-v2`  
 **Team**: DevSecOps | AI-SIEM Infrastructure
 
 ---
