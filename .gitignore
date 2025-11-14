@@ -215,6 +215,9 @@ tech-execution/ai-siem-infra/SUMMARY.md
 tech-execution/ai-siem-infra/SCREENSHOT_CHECKLIST.md
 tech-execution/ai-siem-infra/GIT_WORKFLOW.md
 tech-execution/ai-siem-infra/STATUS.md
+tech-execution/ai-siem-infra/DEPENDENCIES_STATUS.md
+tech-execution/ai-siem-infra/INSTALL_CHECK.md
+tech-execution/ai-siem-infra/check-dependencies.sh
 
 # Logs
 *.log
@@ -265,8 +268,14 @@ docker-compose.override.yml
 
 # Important: Keep documentation
 !README.md
+!**/README.md
 !docs/**/*.md
 !docs/**/*.txt
+
+# Sprint 3: Ignore all .md except README.md and demo_guide.md
+tech-execution/sprint3/*.md
+!tech-execution/sprint3/README.md
+!tech-execution/sprint3/demo_guide.md
 
 # Keep configuration files
 !.gitignore
@@ -282,4 +291,16 @@ docker-compose.override.yml
 !scripts/**/*.py
 !scripts/**/*.sh
 !scripts/**/*.ps1
+
+# Sprint 4: Local setup files (not public-facing)
+tech-execution/ai-siem-infra/local-setup/
+tech-execution/ai-siem-infra/check-dependencies.sh
+tech-execution/ai-siem-infra/install-dependencies.sh
+tech-execution/ai-siem-infra/INSTALL_CHECK.md
+tech-execution/ai-siem-infra/DEPENDENCIES_STATUS.md
+tech-execution/ai-siem-infra/SPRINT4_EXECUTION_PLAN.md
+tech-execution/ai-siem-infra/START_HERE.md
+tech-execution/ai-siem-infra/tailscale-relay/CONNECT.md
+tech-execution/ai-siem-infra/tailscale-relay/SSM_SETUP.md
+tech-execution/ai-siem-infra/cleanup-aws.sh
 
