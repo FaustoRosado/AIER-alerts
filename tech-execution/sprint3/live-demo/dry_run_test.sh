@@ -20,15 +20,21 @@ echo "  found: $(python3 --version)"
 
 # Check dependencies
 echo "[2/5] checking dependencies..."
+DEPS_OK=true
 python3 -c "import streamlit" 2>/dev/null || {
-    echo "  installing streamlit..."
-    pip install streamlit
+    echo "  missing: streamlit"
+    DEPS_OK=false
 }
 python3 -c "import boto3" 2>/dev/null || {
-    echo "  installing boto3..."
-    pip install boto3  
+    echo "  missing: boto3"
+    DEPS_OK=false
 }
-echo "  all dependencies available"
+
+if [ "$DEPS_OK" = true ]; then
+    echo "  all dependencies available"
+else
+    echo "  install with: pip install -r requirements.txt"
+fi
 
 # Check model (optional for dry run)
 echo "[3/5] checking phi-3 model..."
