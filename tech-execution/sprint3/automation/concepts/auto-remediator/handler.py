@@ -146,15 +146,20 @@ def create_remediation_plan(drift_info, auto_fix_enabled):
     }
     
     # Specific plans for different resource types
-    if 'SecurityGroup' in resource_type:
-        plan['description'] = 'Revert security group rules to Terraform state'
-        plan['impact'] = 'May temporarily affect network connectivity'
-    elif 'S3' in resource_type:
-        plan['description'] = 'Re-apply bucket policy and encryption settings'
-        plan['impact'] = 'No service interruption expected'
+    # Check if resource_type exists and is a string before using 'in' operator
+    if resource_type and isinstance(resource_type, str):
+        if 'SecurityGroup' in resource_type:
+            plan['description'] = 'Revert security group rules to Terraform state'
+            plan['impact'] = 'May temporarily affect network connectivity'
+        elif 'S3' in resource_type:
+            plan['description'] = 'Re-apply bucket policy and encryption settings'
+            plan['impact'] = 'No service interruption expected'
+        else:
+            plan['description'] = f'Re-apply Terraform configuration for {resource_type}'
+            plan['impact'] = 'Impact varies by resource type'
     else:
-        plan['description'] = f'Re-apply Terraform configuration for {resource_type}'
-        plan['impact'] = 'Impact varies by resource type'
+        plan['description'] = 'Re-apply Terraform configuration (resource type unknown)'
+        plan['impact'] = 'Impact unknown - manual review recommended'
     
     return plan
 

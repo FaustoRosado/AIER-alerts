@@ -81,10 +81,25 @@ docker-compose up
 **What Gets Installed**:
 - Streamlit dashboard
 - Python dependencies (boto3, streamlit, llama-cpp-python)
-- Phi-3 Mini model (2.4GB - downloads automatically)
+- Phi-3 Mini model (2.4GB - downloads automatically during Docker build)
 - AWS CLI configured with provided credentials
 
-**Time**: ~5 minutes (model download takes 3-4 min)
+**Time**: ~5-8 minutes (first build: model download takes 3-4 min)
+**Note**: Model downloads automatically during Docker build. If download fails, system uses rule-based fallback (still works, but no AI analysis).
+
+---
+
+### **Option 3: Google Colab**
+
+**Prerequisites**: Google account
+
+**Steps**:
+1. Open `colab_setup.ipynb` in Google Colab
+2. Run all cells (installs dependencies, downloads model, tests LLM)
+3. Model downloads to `./models/` directory
+4. LLM ready to use in ~5 minutes
+
+**Note**: Colab provides free GPU/CPU, but session times out after inactivity. Model persists in Colab storage.
 
 ---
 
@@ -95,16 +110,21 @@ docker-compose up
 **Steps**:
 ```bash
 # 1. Clone repo
-git clone https://github.com/YOUR_REPO/capstone.git
-cd capstone/tech-execution/sprint3/live-demo
+git clone -b sprint3-v2 https://github.com/FaustoRosado/AIER-alerts.git
+cd AIER-alerts/tech-execution/sprint3/live-demo
 
 # 2. Install dependencies
 pip install -r requirements.txt
 
 # 3. Download Phi-3 model (one-time, 2.4GB)
+# This is REQUIRED for LLM to work. If skipped, system uses rule-based fallback.
 python download_model.py
 
-# 4. Configure AWS credentials
+# 4. Verify model downloaded
+ls -lh models/Phi-3-mini-4k-instruct-q4.gguf
+# Should show ~2.4GB file
+
+# 5. Configure AWS credentials (optional - for AWS features)
 # Copy provided credentials.json to ~/.aws/credentials
 # OR set environment variables:
 export AWS_ACCESS_KEY_ID="your_key"
@@ -301,7 +321,7 @@ Target: lambda:sprint3-automation-pipeline-validator
 ────────────────────────────────────────────────────────
 
 Rule: sprint3-automation-config-compliance-change
-Status: ✅ ENABLED
+Status: PASS ENABLED
 Event Pattern: {
   "source": ["aws.config"],
   "detail-type": ["Config Rules Compliance Change"],
@@ -380,7 +400,7 @@ def handler(event, context):
 ```
 Test Case 1: Pipeline Failure Detection
 Description: Verify EventBridge → Lambda flow for pipeline failures
-Status: ✅ PASS (last run: 2 min ago)
+Status: PASS PASS (last run: 2 min ago)
 Expected: {"needs_remediation": true, "validation_result": "FAIL"}
 Actual:   {"needs_remediation": true, "validation_result": "FAIL"}
 Duration: 2.1s
@@ -389,7 +409,7 @@ Duration: 2.1s
 ────────────────────────────────────────────────────────
 
 Test Case 2: Infrastructure Drift Detection
-Status: ✅ PASS
+Status: PASS PASS
 Expected: {"drift_severity": "CRITICAL", "requires_remediation": true}
 Actual:   {"drift_severity": "CRITICAL", "requires_remediation": true}
 [Run Test]
@@ -400,9 +420,9 @@ Issues Encountered & Resolutions:
 ┌─────────────────┬──────────────────┬────────────┬──────────┐
 │ Issue           │ Resolution       │ Status     │ Re-test  │
 ├─────────────────┼──────────────────┼────────────┼──────────┤
-│ IAM permissions │ Added policy     │ ✅ Fixed   │ [Test]   │
-│ SNS not sending │ Updated ARNs     │ ✅ Fixed   │ [Test]   │
-│ Tags missing    │ Added terraform  │ ✅ Fixed   │ [Test]   │
+│ IAM permissions │ Added policy     │ PASS Fixed   │ [Test]   │
+│ SNS not sending │ Updated ARNs     │ PASS Fixed   │ [Test]   │
+│ Tags missing    │ Added terraform  │ PASS Fixed   │ [Test]   │
 └─────────────────┴──────────────────┴────────────┴──────────┘
 ```
 
@@ -412,9 +432,9 @@ Issues Encountered & Resolutions:
   → Starting Step Functions execution
   → Execution ARN: arn:aws:states:...
   → Waiting for completion... (3s)
-  ✅ Execution succeeded
+  PASS Execution succeeded
   → Comparing results...
-  ✅ PASS - Results match expected
+  PASS PASS - Results match expected
 
 [Execution Logs ▼]
 10:40:12 ExecutionStarted
@@ -477,7 +497,7 @@ Scenario: Critical Security Group Drift
 → DriftDetector determines CRITICAL severity
 → Step Functions enters WaitForApproval state
 → Dashboard shows: "⏳ Waiting for security approval (timeout in 59:45)"
-→ SNS sent: "🚨 CRITICAL: Manual review required"
+→ SNS sent: "CRITICAL: Manual review required"
 
 [Approve Remediation] [Reject and Create Ticket]
 ```
@@ -526,7 +546,7 @@ aws sts get-caller-identity
 
 ---
 
-## ⚡ Usage Workflow
+## Usage Workflow
 
 ### **5-Minute Demo Path**:
 
@@ -570,18 +590,18 @@ streamlit run dashboard.py
 
 ---
 
-## 📊 What Gets Verified
+## What Gets Verified
 
 ### **By Reviewer**:
-- ✅ State machine JSON (not screenshot)
-- ✅ Visual workflow (not static diagram)
-- ✅ Real execution logs (not example text)
-- ✅ Retry logic happening (not explained in text)
-- ✅ EventBridge patterns (not just documented)
-- ✅ Lambda code (not code snippets)
-- ✅ Error handling (watch it happen)
-- ✅ Test results (execute and compare)
-- ✅ LLM inference (real AI running locally)
+- PASS State machine JSON (not screenshot)
+- PASS Visual workflow (not static diagram)
+- PASS Real execution logs (not example text)
+- PASS Retry logic happening (not explained in text)
+- PASS EventBridge patterns (not just documented)
+- PASS Lambda code (not code snippets)
+- PASS Error handling (watch it happen)
+- PASS Test results (execute and compare)
+- PASS LLM inference (real AI running locally)
 
 ### **By AWS Console** (Optional Verification):
 ```bash
@@ -599,7 +619,7 @@ https://console.aws.amazon.com/states/
 
 ---
 
-## 🎯 How This Follows the Paper
+## How This Follows the Paper
 
 ### **Paper's Pattern**:
 ```
@@ -649,7 +669,7 @@ live-demo/
 
 ---
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### **Dashboard won't start**:
 ```bash
@@ -694,15 +714,15 @@ aws logs describe-log-groups
 
 ---
 
-## 📝 Summary
+## Summary
 
 **This demo proves ALL missing Sprint 3 objectives:**
 
-- ✅ 3C: Step Functions (JSON, diagram, logs, retry logic) - ALL VISIBLE
-- ✅ 3D: EventBridge (patterns, integration) - ALL TESTABLE
-- ✅ 3E: Lambda (code, logging, errors) - ALL EXECUTABLE
-- ✅ 3F: Testing (cases, results, issues) - ALL RUNNABLE
-- ✅ 3G: Errors (scenarios, fallbacks, escalation) - ALL TRIGGERABLE
+- PASS 3C: Step Functions (JSON, diagram, logs, retry logic) - ALL VISIBLE
+- PASS 3D: EventBridge (patterns, integration) - ALL TESTABLE
+- PASS 3E: Lambda (code, logging, errors) - ALL EXECUTABLE
+- PASS 3F: Testing (cases, results, issues) - ALL RUNNABLE
+- PASS 3G: Errors (scenarios, fallbacks, escalation) - ALL TRIGGERABLE
 
 **Not screenshots. Not documentation. Real AWS services, executing live.**
 

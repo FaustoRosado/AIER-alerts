@@ -24,9 +24,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY dashboard.py .
 COPY aws/ ./aws/
 COPY utils/ ./utils/
+COPY download_model.py .
 
 # Create models directory
 RUN mkdir -p /opt/models
+
+# Download model (required for LLM to work)
+# Model is 2.4GB, download takes 3-5 minutes
+# If download fails, build continues but LLM will use fallback
+RUN python download_model.py || (echo "WARNING: Model download failed - LLM will use rule-based fallback" && mkdir -p /opt/models)
 
 # Expose Streamlit port
 EXPOSE 8501

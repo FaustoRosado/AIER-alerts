@@ -12,9 +12,23 @@ import sys
 
 
 MODEL_URL = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf"
-MODEL_DIR = "/opt/models"
 MODEL_NAME = "Phi-3-mini-4k-instruct-q4.gguf"
-MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
+
+# Determine model directory based on environment
+# Works in Docker, Colab, and local
+if os.environ.get('MODEL_PATH'):
+    MODEL_DIR = os.path.dirname(os.environ.get('MODEL_PATH'))
+    MODEL_PATH = os.environ.get('MODEL_PATH')
+elif os.path.exists('/opt/models'):
+    MODEL_DIR = '/opt/models'
+    MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
+elif os.path.exists('./models'):
+    MODEL_DIR = './models'
+    MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
+else:
+    # Default to local models directory
+    MODEL_DIR = './models'
+    MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
 
 
 def download_file(url, destination):

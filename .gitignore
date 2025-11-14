@@ -273,9 +273,22 @@ docker-compose.override.yml
 !docs/**/*.txt
 
 # Sprint 3: Ignore all .md except README.md and demo_guide.md
-tech-execution/sprint3/*.md
+tech-execution/sprint3/**/*.md
 !tech-execution/sprint3/README.md
 !tech-execution/sprint3/demo_guide.md
+tech-execution/sprint3/*.md
+# Also ignore specific subdirectory .md files
+tech-execution/sprint3/automation/**/*.md
+tech-execution/sprint3/automation/testing/*.md
+
+# Ignore team credentials and planning docs (not for reviewer)
+team-credentials/
+TEAM_MESSAGES.md
+COMPLETE_BEGINNERS_GUIDE.md
+NEXT_STEPS.md
+docs/
+data_viz/
+scripts/
 
 # Sprint 3 live-demo: Ignore user-directed and generated files
 tech-execution/sprint3/live-demo/MORNING_SUMMARY.md
@@ -302,10 +315,8 @@ tech-execution/sprint3/live-demo/reviewer-keys.json
 !*.sh
 !*.ps1
 
-# Keep scripts
-!scripts/**/*.py
-!scripts/**/*.sh
-!scripts/**/*.ps1
+# Keep scripts (but ignore root-level scripts directory)
+scripts/
 
 # Sprint 4: Local setup files (not public-facing)
 tech-execution/ai-siem-infra/local-setup/

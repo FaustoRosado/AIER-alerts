@@ -41,11 +41,28 @@ class LLMRunner:
         
         Model loads on init (takes ~2-5 seconds)
         Then inference is fast (~0.5s per request)
+        
+        Model path resolution (works in Docker, Colab, local):
+        1. Use provided path
+        2. Check MODEL_PATH env var
+        3. Check /opt/models (Docker)
+        4. Check ./models (local/Colab)
+        5. Check ~/.cache/models (user cache)
         """
-        self.model_path = model_path or os.environ.get(
-            'MODEL_PATH',
-            '/opt/models/Phi-3-mini-4k-instruct-q4.gguf'
-        )
+        # Resolve model path - works in all environments
+        if model_path:
+            self.model_path = model_path
+        elif os.environ.get('MODEL_PATH'):
+            self.model_path = os.environ.get('MODEL_PATH')
+        elif os.path.exists('/opt/models/Phi-3-mini-4k-instruct-q4.gguf'):
+            self.model_path = '/opt/models/Phi-3-mini-4k-instruct-q4.gguf'
+        elif os.path.exists('./models/Phi-3-mini-4k-instruct-q4.gguf'):
+            self.model_path = './models/Phi-3-mini-4k-instruct-q4.gguf'
+        elif os.path.exists(os.path.expanduser('~/.cache/models/Phi-3-mini-4k-instruct-q4.gguf')):
+            self.model_path = os.path.expanduser('~/.cache/models/Phi-3-mini-4k-instruct-q4.gguf')
+        else:
+            # Default to local models directory
+            self.model_path = './models/Phi-3-mini-4k-instruct-q4.gguf'
         
         self.llm = None
         self.model_loaded = False
@@ -123,28 +140,40 @@ class LLMRunner:
         """
         Create structured prompt for Phi-3
         
-        Key: Force JSON output with specific schema
+        Key: Force clean JSON output with human-readable clinical language
         """
         
+        patient_id = vitals.get('patient_id', 'UNKNOWN')
+        hr = vitals.get('heart_rate', 'N/A')
+        bp_sys = vitals.get('bp_systolic', 'N/A')
+        bp_dia = vitals.get('bp_diastolic', 'N/A')
+        o2 = vitals.get('oxygen_saturation', 'N/A')
+        rr = vitals.get('respiratory_rate', 'N/A')
+        temp = vitals.get('temperature', 'N/A')
+        
         prompt = f"""<|system|>
-You are an expert Emergency Room triage nurse. Analyze patient vital signs and provide structured assessment. Respond ONLY with valid JSON.<|end|>
+You are an expert Emergency Room triage nurse. Analyze patient vital signs and provide a clear, structured clinical assessment. Your response must be valid JSON only, with human-readable text in the fields.<|end|>
 <|user|>
-CURRENT VITAL SIGNS:
-- Heart Rate: {vitals.get('heart_rate', 'N/A')} bpm (normal: 60-100)
-- Blood Pressure: {vitals.get('bp_systolic', 'N/A')}/{vitals.get('bp_diastolic', 'N/A')} mmHg (normal: 120/80)
-- Oxygen Saturation: {vitals.get('oxygen_saturation', 'N/A')}% (normal: 95-100%)
-- Respiratory Rate: {vitals.get('respiratory_rate', 'N/A')}/min (normal: 12-20)
-- Temperature: {vitals.get('temperature', 'N/A')}°C (normal: 36.5-37.5)
+Patient ID: {patient_id}
 
-Respond with JSON:
+CURRENT VITAL SIGNS:
+- Heart Rate: {hr} bpm (normal range: 60-100 bpm)
+- Blood Pressure: {bp_sys}/{bp_dia} mmHg (normal: <120/80)
+- Oxygen Saturation: {o2}% (normal: 95-100%)
+- Respiratory Rate: {rr} breaths/min (normal: 12-20)
+- Temperature: {temp}°C (normal: 36.5-37.5°C)
+
+Provide your assessment as JSON with these exact fields:
 {{
-  "urgency": "NORMAL/MODERATE/CRITICAL",
-  "primary_concern": "brief description",
-  "reasoning": "clinical reasoning 2-3 sentences",
-  "abnormal_vitals": ["list"],
-  "recommended_actions": ["action1", "action2"],
-  "confidence_score": 0.0-1.0
-}}<|end|>
+  "urgency": "NORMAL" or "MODERATE" or "CRITICAL",
+  "primary_concern": "Clear, concise clinical concern in plain English",
+  "reasoning": "2-3 sentence explanation of your clinical reasoning in plain English",
+  "abnormal_vitals": ["heart_rate", "blood_pressure", "oxygen_saturation", "respiratory_rate", "temperature"],
+  "recommended_actions": ["Action 1 in plain English", "Action 2 in plain English"],
+  "confidence_score": 0.85
+}}
+
+Respond with ONLY the JSON object, no other text.<|end|>
 <|assistant|>
 {{"""
         
@@ -180,14 +209,57 @@ Respond with JSON:
     
     
     def _parse_llm_output(self, output: str, vitals: Dict) -> Dict:
-        """Parse LLM JSON output"""
+        """
+        Parse LLM JSON output with robust extraction
+        
+        Handles cases where LLM adds extra text before/after JSON
+        """
         try:
-            # Try to extract JSON
-            json_text = "{" + output.split("}")[0] + "}"
+            # Clean output - remove leading/trailing whitespace
+            output = output.strip()
+            
+            # Find JSON object boundaries
+            start_idx = output.find('{')
+            end_idx = output.rfind('}')
+            
+            if start_idx == -1 or end_idx == -1 or end_idx <= start_idx:
+                raise ValueError("No valid JSON found in output")
+            
+            # Extract JSON
+            json_text = output[start_idx:end_idx + 1]
+            
+            # Parse JSON
             result = json.loads(json_text)
+            
+            # Validate required fields
+            required_fields = ['urgency', 'primary_concern', 'reasoning', 'abnormal_vitals', 'recommended_actions', 'confidence_score']
+            for field in required_fields:
+                if field not in result:
+                    raise ValueError(f"Missing required field: {field}")
+            
+            # Ensure urgency is valid
+            if result['urgency'] not in ['NORMAL', 'MODERATE', 'CRITICAL']:
+                result['urgency'] = 'MODERATE'  # Default to moderate if invalid
+            
+            # Ensure lists are actually lists
+            if not isinstance(result.get('abnormal_vitals', []), list):
+                result['abnormal_vitals'] = []
+            if not isinstance(result.get('recommended_actions', []), list):
+                result['recommended_actions'] = ['Monitor patient']
+            
+            # Ensure confidence is a number
+            if not isinstance(result.get('confidence_score'), (int, float)):
+                result['confidence_score'] = 0.75
+            
+            # Clamp confidence to 0-1
+            result['confidence_score'] = max(0.0, min(1.0, float(result['confidence_score'])))
+            
             result['analysis_method'] = 'llm'
             return result
-        except:
+            
+        except Exception as e:
+            print(f"[WARN] Failed to parse LLM output: {e}")
+            print(f"[WARN] Raw output: {output[:200]}...")
             # If parsing fails, use fallback
             return self._fallback_analysis(vitals)
     

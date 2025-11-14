@@ -496,13 +496,7 @@ def format_clinical_alert(alert, vitals):
     - Clear action items
     """
     
-    urgency_emoji = {
-        'CRITICAL': '🚨',
-        'MODERATE': '⚠️',
-        'NORMAL': '✅'
-    }
-    
-    message = f"""{urgency_emoji.get(alert['urgency'], '')} {alert['urgency']} ALERT
+    message = f"""{alert['urgency']} ALERT
 
 PATIENT: {vitals['patient_id']}
 TIME: {vitals['timestamp']}
