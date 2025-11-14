@@ -31,11 +31,18 @@ class AWSConnector:
     """
     
     def __init__(self, region='us-east-1'):
-        """Initialize AWS clients"""
+        """
+        Initialize AWS clients
+        
+        Supports both:
+        - Regular credentials (access key + secret)
+        - STS temporary credentials (access key + secret + session token)
+        """
         self.region = region
         
         try:
-            # Initialize clients
+            # Get credentials from environment or boto3 defaults
+            # boto3 automatically handles session tokens from env vars
             self.sfn = boto3.client('stepfunctions', region_name=region)
             self.lambda_client = boto3.client('lambda', region_name=region)
             self.events = boto3.client('events', region_name=region)
@@ -59,11 +66,23 @@ class AWSConnector:
     
     
     # ========================================================================
-    # STEP FUNCTIONS METHODS (for 3C proof)
+    # STEP FUNCTIONS QUERIES (for 3C proof)
+    # 
+    # PATTERN NOTE (paper Section 6.4):
+    # "Reads are handled by client-driven querying capabilities"
+    # 
+    # These are NOT getters on concepts (which would introduce coupling).
+    # These are database queries against AWS services.
+    # Step Functions execution history = the "database" we're querying.
     # ========================================================================
     
     def list_state_machines(self) -> List[Dict]:
-        """Get all Step Functions state machines"""
+        """
+        Query: Get all Step Functions state machines
+        
+        This is a federated query across AWS Step Functions service.
+        Not a getter on a concept - we're querying the state directly.
+        """
         try:
             response = self.sfn.list_state_machines()
             return response.get('stateMachines', [])

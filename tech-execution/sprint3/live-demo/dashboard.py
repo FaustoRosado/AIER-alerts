@@ -35,7 +35,6 @@ from utils.llm_runner import LLMRunner
 # Page configuration
 st.set_page_config(
     page_title="Sprint 3 Demo",
-    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -242,14 +241,14 @@ with tabs[1]:
             with st.spinner("running phi-3 inference..."):
                 result = llm.analyze_vitals(vitals)
             
-            # Display result
-            urgency_colors = {
-                'CRITICAL': '🔴',
-                'MODERATE': '🟡',
-                'NORMAL': '🟢'
-            }
+            # Display result with color coding
+            urgency_color = {
+                'CRITICAL': 'red',
+                'MODERATE': 'orange',
+                'NORMAL': 'green'
+            }.get(result['urgency'], 'gray')
             
-            st.markdown(f"### {urgency_colors.get(result['urgency'], '')} {result['urgency']} alert")
+            st.markdown(f"### :{urgency_color}[{result['urgency']} ALERT]")
             
             st.markdown(f"**primary concern**: {result['primary_concern']}")
             

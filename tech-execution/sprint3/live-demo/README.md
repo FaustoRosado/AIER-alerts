@@ -1,6 +1,8 @@
 # sprint 3 live demo
 
-interactive dashboard proving all sprint 3 objectives with real aws infrastructure
+interactive visualization of "concepts & synchronizations" architecture pattern with real aws infrastructure
+
+following: "what you see is what it does" (meng & jackson, acm sigplan 2025)
 
 ## quick start
 
