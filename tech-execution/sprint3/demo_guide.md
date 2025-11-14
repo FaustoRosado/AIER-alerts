@@ -486,30 +486,30 @@ Scenario: Critical Security Group Drift
 
 ---
 
-## 🔐 AWS Credentials (24 Hour Access)
+## AWS Credentials (72 Hour Access)
 
-### **Credentials Provided in `reviewer-credentials.json`**:
+### Credentials Provided in `reviewer-credentials.json`:
 
 ```json
 {
   "access_key_id": "AKIA...",
   "secret_access_key": "...",
   "region": "us-east-1",
-  "expires": "2025-11-15T23:59:59Z",
+  "expires": "2025-11-17T23:59:59Z",
   "permissions": "read-only"
 }
 ```
 
 **Permissions** (Safe to Use):
-- ✅ View Step Functions executions
-- ✅ View Lambda functions and logs
-- ✅ View EventBridge rules
-- ✅ View CloudWatch logs
-- ✅ Start Step Functions executions (testing only)
-- ✅ Invoke Lambda functions
-- ❌ Create/delete resources (read-only)
-- ❌ Modify IAM policies
-- ❌ Access after 24 hours (auto-expires)
+- View Step Functions executions
+- View Lambda functions and logs
+- View EventBridge rules
+- View CloudWatch logs
+- Start Step Functions executions (testing only)
+- Invoke Lambda functions
+- Cannot create/delete resources (read-only)
+- Cannot modify IAM policies
+- Expires after 72 hours (auto-revoked)
 
 **Verification**:
 ```bash

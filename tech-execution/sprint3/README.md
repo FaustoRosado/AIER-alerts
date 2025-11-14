@@ -51,7 +51,7 @@ open: `Sprint3_Demo.ipynb` in repo, click "run all"
 
 ## credentials
 
-24-hour read-only aws access provided in `reviewer-credentials.json` (expires automatically)
+72-hour read-only aws access provided in `reviewer-credentials.json` (expires automatically)
 
 ## time needed
 
