@@ -2,7 +2,15 @@
 
 ## what this is
 
-interactive dashboard that runs against real aws infrastructure to demonstrate all missing sprint 3 objectives. follows the "concepts & synchronizations" pattern from the MIT paper for clean, modular code.
+implementation of the "concepts & synchronizations" architectural pattern from "What You See Is What It Does" (Meng & Jackson, ACM SIGPLAN 2025) applied to devops automation and healthcare alerting.
+
+**architecture** (following paper sections 2-6):
+- concepts (section 2): independent lambda functions, each with single purpose, no inter-concept dependencies
+- synchronizations (section 3): eventbridge rules mediating between concepts via events, not direct calls
+- orchestration (section 6): step functions coordinating flows with explicit synchronizations
+- transparency (section 6.6): complete provenance tracking via cloudwatch logs and execution history
+
+**dashboard**: visualization layer (not part of architecture) making invisible structure visible per paper's title principle
 
 ## what it addresses
 

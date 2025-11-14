@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build: .
+    container_name: sprint3-demo
+    ports:
+      - "8501:8501"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=us-east-1
+      - MODEL_PATH=/opt/models/Phi-3-mini-4k-instruct-q4.gguf
+    volumes:
+      # Mount models directory to persist between runs
+      - ./models:/opt/models
+      # Mount AWS credentials if they exist
+      - ~/.aws:/root/.aws:ro
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
