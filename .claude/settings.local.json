@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scp:*)",
+      "Bash(ssh:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m spacy download:*)",
+      "Bash(/usr/bin/python3:*)",
+      "Bash(/Volumes/Exchange/projects/zero-trust-hybrid-ai/orchestrator/venv/bin/pip install:*)",
+      "Bash(/usr/local/bin/python3.13 -m venv:*)",
+      "Bash(curl:*)",
+      "Bash(/Volumes/Exchange/projects/zero-trust-hybrid-ai/orchestrator/venv/bin/python:*)",
+      "Bash(/Volumes/Exchange/projects/zero-trust-hybrid-ai/orchestrator/venv/bin/python3.13:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh-keyscan:*)",
+      "Bash(~/.ssh/known_hosts)",
+      "Bash(sh:*)",
+      "Bash(brew install:*)",
+      "Bash(open:*)",
+      "Bash(/Applications/Ollama.app/Contents/Resources/ollama:*)",
+      "Bash(git init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

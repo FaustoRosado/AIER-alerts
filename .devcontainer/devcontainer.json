@@ -1,0 +1,78 @@
+{
+  "name": "Zero-Trust Hybrid AI Pipeline Demo",
+  "dockerComposeFile": "../docker/docker-compose.yml",
+  "service": "orchestrator",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
+  
+  "forwardPorts": [
+    8000,   // Orchestrator API
+    11434,  // Ollama (GPU/CPU)
+    11435,  // Ollama (secondary)
+    3000    // Web UI
+  ],
+  
+  "portsAttributes": {
+    "8000": {
+      "label": "Orchestrator API",
+      "onAutoForward": "notify"
+    },
+    "11434": {
+      "label": "Ollama Primary",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "Web UI",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "bradlc.vscode-tailwindcss",
+        "Continue.continue",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "redhat.vscode-yaml",
+        "bierner.markdown-mermaid"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  
+  "postCreateCommand": "pip install -r orchestrator/requirements.txt && ./scripts/codespaces-setup.sh",
+  
+  "postStartCommand": "docker compose -f docker/docker-compose.yml --profile demo up -d",
+  
+  "remoteUser": "vscode",
+  
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+  
+  "secrets": {
+    "OPENAI_API_KEY": {
+      "description": "Optional: OpenAI API key for cloud fallback"
+    }
+  }
+}

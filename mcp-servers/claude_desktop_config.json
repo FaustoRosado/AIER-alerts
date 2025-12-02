@@ -1,0 +1,104 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/anthropic-cookbook/main/misc/mcp_config_schema.json",
+  "_comment": "Zero-Trust Hybrid AI Pipeline - Claude Desktop MCP Configuration",
+  "_description": "This configuration enables Claude Desktop to interact with your distributed AI infrastructure through MCP tools. Install location: ~/Library/Application Support/Claude/claude_desktop_config.json (macOS) or %APPDATA%/Claude/claude_desktop_config.json (Windows)",
+  
+  "mcpServers": {
+    
+    "_comment_filesystem": "Local filesystem access for project files",
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/your-username/projects",
+        "/Users/your-username/Documents"
+      ]
+    },
+    
+    "_comment_orchestrator": "Connect to the local orchestrator API for distributed inference",
+    "orchestrator": {
+      "command": "node",
+      "args": [
+        "/Users/your-username/zero-trust-hybrid-ai/mcp-servers/orchestrator-mcp/index.js"
+      ],
+      "env": {
+        "ORCHESTRATOR_URL": "http://localhost:8000"
+      }
+    },
+    
+    "_comment_aegis_shell": "SSH shell access to Aegis (RTX 4080 Super inference node)",
+    "aegis-shell": {
+      "command": "ssh",
+      "args": [
+        "aegis",
+        "npx",
+        "-y",
+        "@anthropic/mcp-server-shell"
+      ],
+      "_note": "Requires SSH key authentication configured for 'aegis' host"
+    },
+    
+    "_comment_ryzen_ai_shell": "SSH shell access to Ryzen-AI (Multi-model node)",
+    "ryzen-ai-shell": {
+      "command": "ssh",
+      "args": [
+        "ryzen-ai", 
+        "npx",
+        "-y",
+        "@anthropic/mcp-server-shell"
+      ],
+      "_note": "Requires SSH key authentication configured for 'ryzen-ai' host"
+    },
+    
+    "_comment_git": "Git operations for version control",
+    "git": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic/mcp-server-git"
+      ]
+    },
+    
+    "_comment_postgres": "Database access (if using PostgreSQL for logging)",
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic/mcp-server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://user:password@localhost:5432/hybrid_ai"
+      },
+      "_enabled": false,
+      "_note": "Enable if using PostgreSQL for audit logging"
+    },
+    
+    "_comment_brave_search": "Web search capability for research tasks",
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic/mcp-server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "your-brave-api-key"
+      },
+      "_enabled": false,
+      "_note": "Get API key from brave.com/search/api"
+    }
+  },
+  
+  "_setup_instructions": {
+    "step1": "Install Node.js 18+ on your machine",
+    "step2": "Configure SSH keys for aegis and ryzen-ai hosts in ~/.ssh/config",
+    "step3": "Copy this file to the appropriate location for your OS",
+    "step4": "Restart Claude Desktop",
+    "step5": "Verify MCP tools appear in Claude's tool list"
+  },
+  
+  "_ssh_config_example": {
+    "description": "Add these to your ~/.ssh/config file",
+    "config": "Host aegis\n    HostName aegis\n    User your-username\n    IdentityFile ~/.ssh/id_ed25519\n\nHost ryzen-ai\n    HostName ryzen-ai\n    User your-username\n    IdentityFile ~/.ssh/id_ed25519"
+  }
+}

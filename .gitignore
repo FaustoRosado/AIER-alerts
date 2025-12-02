@@ -1,165 +1,136 @@
-# Universal .gitignore for AIER Frontend Visualization Project
+# =============================================================================
+# Zero-Trust Hybrid AI Pipeline - .gitignore
+# =============================================================================
 
-# OS Files
-.DS_Store
-._*
-**/._*
-Thumbs.db
-desktop.ini
-*.DS_Store
+# -----------------------------------------------------------------------------
+# Python Virtual Environments
+# -----------------------------------------------------------------------------
+venv/
+venv_new/
+.venv/
+env/
+.env/
+ENV/
 
-# IDE and Editor Files
-.vscode/
+# -----------------------------------------------------------------------------
+# Python Bytecode
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# -----------------------------------------------------------------------------
+# IDE and Editor Settings
+# -----------------------------------------------------------------------------
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
 .project
-.classpath
+.pydevproject
 .settings/
-*.sublime-*
+*.sublime-project
+*.sublime-workspace
 
-# Dependencies
-node_modules/
-venv/
-env/
-.env
-.venv
-pip-log.txt
-pip-delete-this-directory.txt
-__pycache__/
-*.pyc
-*.pyo
+# -----------------------------------------------------------------------------
+# macOS System Files
+# -----------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
 
-# Build outputs
-dist/
-build/
-*.egg-info/
-.eggs/
-.tox/
-.coverage
-htmlcov/
-coverage/
+# -----------------------------------------------------------------------------
+# Windows System Files
+# -----------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# -----------------------------------------------------------------------------
+# Log Files
+# -----------------------------------------------------------------------------
 *.log
+orchestrator.log
+logs/
 
-# Terraform
+# -----------------------------------------------------------------------------
+# Runtime and Cache
+# -----------------------------------------------------------------------------
+*.pid
+*.seed
+*.pid.lock
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# -----------------------------------------------------------------------------
+# Model Files (Large Binary Files)
+# -----------------------------------------------------------------------------
+*.gguf
+*.bin
+*.safetensors
+models/
+
+# -----------------------------------------------------------------------------
+# Credentials and Secrets (NEVER COMMIT)
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*_rsa
+*_ed25519
+!*.pub
+credentials.json
+secrets.yaml
+secrets.yml
+
+# -----------------------------------------------------------------------------
+# Test Output and Reports
+# -----------------------------------------------------------------------------
+verification-report.txt
+deployment-report.md
+coverage/
+htmlcov/
+.coverage
+.tox/
+
+# -----------------------------------------------------------------------------
+# Terraform State (Contains Sensitive Info)
+# -----------------------------------------------------------------------------
 *.tfstate
 *.tfstate.*
 .terraform/
-.terraform.lock.hcl
-terraform.tfvars
-*.tfvars.json
-*.backup
+*.tfvars
+!*.tfvars.example
 
-# AWS - CRITICAL: Never commit credentials
-*.pem
-.aws/
-credentials
-config
-aws-exports.js
-**/aws-credentials*
-**/aws-config*
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+docker-compose.override.yml
 
-# Secrets and keys - CRITICAL
-*.key
-*.secret
-.env
-.env.*
-.env.local
-.env.production
-.env.*.local
-secrets.json
-kaggle.json
-**/kaggle.json
+# -----------------------------------------------------------------------------
+# Node.js (for MCP servers)
+# -----------------------------------------------------------------------------
+node_modules/
+npm-debug.log
+yarn-error.log
 
-# Team credentials - NEVER COMMIT
-team-credentials/
-*credentials*.txt
-*password*.txt
+# -----------------------------------------------------------------------------
+# Jupyter Notebooks Checkpoints
+# -----------------------------------------------------------------------------
+.ipynb_checkpoints/
 
-# Logs
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.tsbuildinfo
-
-# Testing
-.pytest_cache/
-.coverage
-coverage/
-*.cover
-.nyc_output/
-
-# Data files - CRITICAL: Don't commit dataset
-data/*.csv
-data/*.json
-data/**/*.csv
-data/**/*.json
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-*.swp
-*.bak
-
-# Compiled files
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
-
-# Packages
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-
-# Keep project structure files
-!.gitkeep
-!data/.gitkeep
-
-# Keep all documentation in docs folder
-!docs/**/*.md
-!docs/**/*.txt
-
-# Keep root README
-!README.md
-
-# Keep scripts
-!scripts/*.sh
-!scripts/*.ps1
-!scripts/*.py
-
-# Keep configuration files
-!package.json
-!tsconfig.json
-!requirements.txt
-!*.tf
-
-# Exclude parent directory files (these stay in capstone root)
-../*.md
-../*.txt
-../._*
-
-# Extraneous status files (temporary setup documentation - should not be in repo)
-COMPLETE_SETUP.md
-CREDENTIAL_DISTRIBUTION.md
-DEMO_CHECKLIST.md
-FINAL_STATUS.md
-GITHUB_READY.md
-IAM_USERS_STATUS.md
-MOCK_RUN_COMPLETE.md
-PUSH_TO_GITHUB.md
-READY_TO_DEMO.md
-SECURITY_INCIDENT.md
-STATUS.md
-STREAMLINED_SETUP.md
+# -----------------------------------------------------------------------------
+# Distribution / Build
+# -----------------------------------------------------------------------------
+build/
+dist/
+*.egg-info/
