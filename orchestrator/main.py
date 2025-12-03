@@ -6,19 +6,21 @@ Zero-Trust Hybrid AI Pipeline - Orchestrator Service
 This service runs on your command center (Mac Mini M4 Pro - Nexus)
 and intelligently routes inference requests to the appropriate backend
 based on:
-1. DATA SENSITIVITY (PHI/PII detection) - Shay's 3-tier routing
+1. DATA SENSITIVITY (PHI/PII detection) - Shay's 4-tier classification
 2. Task type and model requirements
 3. Current system load and availability
 
-SECURITY MODEL (Zero-Trust):
-- Tier 1 (HIGH RISK): SSN, names, medical data → LOCAL ONLY
-- Tier 2 (MEDIUM RISK): IPs, device IDs → Anonymize → Cloud allowed
-- Tier 3 (SAFE): General questions → Cloud allowed (if configured)
+SECURITY MODEL (Zero-Trust 4-Tier Classification):
+- Tier 0 (PROTECTED): Keyword match (patient, diagnosis, vitals) → LOCAL ONLY
+- Tier 1 (HIGH RISK): Presidio: SSN, names, credentials → LOCAL ONLY
+- Tier 2 (MEDIUM RISK): Presidio: IPs, device IDs → Anonymize → Cloud allowed
+- Tier 3 (CLEAR): Nothing detected → ANY backend
 
 HIPAA COMPLIANCE:
-- PHI never leaves local infrastructure
+- PHI never leaves local infrastructure (Tier 0 and Tier 1)
 - All audit logs use anonymized versions
 - Supports offline operation during outages
+- Note: Tier 0 uses hardcoded keyword set (known limitation)
 
 Architecture:
     Nexus (Orchestrator + Command Center)
@@ -36,7 +38,7 @@ Architecture:
 
 Contributors:
 - Shifty: Infrastructure, orchestration, hardware setup
-- Sheniese (Shay): 3-tier routing, HIPAA compliance, sensitivity analysis
+- Sheniese (Shay): 4-tier classification, HIPAA compliance, sensitivity analysis
 - Javier: Presidio integration, Streamlit UI, AWS Bedrock
 
 The orchestrator exposes an OpenAI-compatible API, so any tool that works with
@@ -164,6 +166,11 @@ class BackendStatus(BaseModel):
     current_model: Optional[str] = None
     gpu_utilization: Optional[float] = None
 
+
+class AnalyzeRequest(BaseModel):
+    """Request model for the /analyze endpoint."""
+    text: str = Field(..., description="Text to analyze for sensitive data")
+
 # ============================================================================
 # Backend Health Monitoring
 # ============================================================================
@@ -218,35 +225,37 @@ async def refresh_all_backend_status():
     backend_status = {bid: status for bid, status in zip(BACKEND_CONFIG.keys(), results)}
 
 # ============================================================================
-# Inference Routing Logic (Integrated with Shay's 3-Tier System)
+# Inference Routing Logic (Integrated with Shay's 4-Tier Classification)
 # ============================================================================
 
 def analyze_request_sensitivity(messages: list) -> Dict[str, Any]:
     """
-    Analyze request for sensitive data using Shay's 3-tier routing system.
-    
+    Analyze request for sensitive data using Shay's 4-tier classification.
+
     Returns routing decision with:
     - route: local, anonymize_cloud, or cloud
-    - tier1_entities: High-risk entities (SSN, names, medical)
-    - tier2_entities: Medium-risk entities (IPs, device IDs)
-    - hipaa_relevant: Whether HIPAA context detected
+    - tier0_protected: Whether protected context keywords detected
+    - tier1_high_entities: High-risk entities (SSN, names, credentials)
+    - tier2_medium_entities: Medium-risk entities (IPs, device IDs)
+    - tier3_clear: Whether no sensitive data detected
     - audit_safe_text: Anonymized version for logging
     """
     if not SENSITIVE_ROUTING_AVAILABLE:
         # Fallback: assume local routing for safety
         return {
             "route": "local",
-            "tier1_entities": [],
-            "tier2_entities": [],
-            "hipaa_relevant": False,
+            "tier0_protected": False,
+            "tier1_high_entities": [],
+            "tier2_medium_entities": [],
+            "tier3_clear": False,
             "audit_safe_text": "[sensitivity analysis unavailable]",
             "payload_text": " ".join(m.content for m in messages),
         }
-    
+
     # Combine all message content for analysis
     full_text = " ".join(m.content for m in messages if m.content)
-    
-    # Use Shay's routing system
+
+    # Use Shay's 4-tier classification system
     return analyze_and_route_dict(full_text, allow_cloud=False)
 
 
@@ -255,21 +264,27 @@ def select_backend(request: "ChatCompletionRequest") -> tuple[str, dict, Dict[st
     Intelligently select the best backend for a given request.
     
     This function implements the Zero-Trust routing logic:
-    1. First, analyze for sensitive data (Shay's 3-tier system)
+    1. First, analyze for sensitive data (Shay's 4-tier classification)
     2. If sensitive, ALWAYS route local (no exceptions)
     3. If safe, consider task type and backend availability
-    
+
     Returns:
         Tuple of (backend_id, backend_config, sensitivity_analysis)
     """
     # Step 1: Analyze sensitivity (SECURITY FIRST)
     sensitivity = analyze_request_sensitivity(request.messages)
-    
+
+    # Compute tier3_clear for logging
+    tier3_clear = (not sensitivity['tier0_protected'] and
+                   len(sensitivity['tier1_high_entities']) == 0 and
+                   len(sensitivity['tier2_medium_entities']) == 0)
+
     # Log with anonymized version only
     logger.info(f"Request analysis: route={sensitivity['route']}, "
-                f"hipaa={sensitivity['hipaa_relevant']}, "
-                f"tier1={len(sensitivity['tier1_entities'])}, "
-                f"tier2={len(sensitivity['tier2_entities'])}")
+                f"tier0_protected={sensitivity['tier0_protected']}, "
+                f"tier1_high={len(sensitivity['tier1_high_entities'])}, "
+                f"tier2_medium={len(sensitivity['tier2_medium_entities'])}, "
+                f"tier3_clear={tier3_clear}")
     
     # Step 2: If user explicitly requested a backend, validate it
     if request.preferred_backend:
@@ -299,8 +314,8 @@ def select_backend(request: "ChatCompletionRequest") -> tuple[str, dict, Dict[st
             task_type = "general"
     
     # Step 4: Select backend based on sensitivity AND task type
-    if sensitivity['route'] == 'local' or sensitivity['hipaa_relevant']:
-        # TIER 1 / HIPAA: Must use local backend
+    if sensitivity['route'] == 'local' or sensitivity['tier0_protected']:
+        # TIER 0/1: Protected or high risk - must use local backend
         # For code tasks, prefer Ryzen-AI (specialized models)
         # For general tasks, prefer Aegis (fastest)
         if task_type in ['code', 'validation', 'embedding']:
@@ -548,6 +563,106 @@ async def list_backends(refresh: bool = False):
             for bid, status in backend_status.items()
         ]
     }
+
+
+@app.post("/analyze")
+async def analyze_text(request: AnalyzeRequest):
+    """
+    Analyze text for sensitive data - Demo mode with verbose output.
+    Shows the complete 4-tier classification pipeline.
+
+    This endpoint is designed for demos and debugging - it shows:
+    - Raw Presidio detection results
+    - 4-tier classification breakdown
+    - Routing decision with explanation
+    - Backend connectivity status
+    - Anonymized audit-safe version
+    """
+    from sensitive_routing import analyze_and_route_dict, get_analyzer
+
+    sensitivity = analyze_and_route_dict(request.text, allow_cloud=False)
+
+    tier3_clear = (
+        not sensitivity['tier0_protected'] and
+        len(sensitivity['tier1_high_entities']) == 0 and
+        len(sensitivity['tier2_medium_entities']) == 0
+    )
+
+    # Get raw Presidio results for demo purposes
+    presidio_results = []
+    try:
+        analyzer = get_analyzer()
+        if analyzer != "fallback":
+            raw_results = analyzer.analyze(text=request.text, language='en')
+            presidio_results = [
+                {
+                    "entity_type": r.entity_type,
+                    "text": request.text[r.start:r.end],
+                    "confidence": round(r.score, 3),
+                    "position": f"{r.start}-{r.end}"
+                }
+                for r in raw_results
+            ]
+    except Exception as e:
+        presidio_results = [{"error": str(e)}]
+
+    # Check backend connectivity
+    backend_connectivity = {}
+    async with httpx.AsyncClient(timeout=2.0) as client:
+        for name, config in BACKEND_CONFIG.items():
+            try:
+                url = config.get('url', f"http://{config['tailscale_hostname']}:{config['port']}")
+                url = url.rstrip('/')
+                if 'ollama' in config.get('api_type', '') or '11434' in str(config.get('port', '')):
+                    health_url = f"{url}/api/tags"
+                else:
+                    health_url = f"{url}/health"
+                resp = await client.get(health_url)
+                backend_connectivity[name] = {
+                    "status": "online",
+                    "latency_ms": round(resp.elapsed.total_seconds() * 1000, 1),
+                    "url": url
+                }
+            except Exception as e:
+                backend_connectivity[name] = {
+                    "status": "offline",
+                    "error": str(type(e).__name__),
+                    "url": config.get('url', f"http://{config['tailscale_hostname']}:{config['port']}")
+                }
+
+    # Generate human-readable routing reason
+    if sensitivity['tier1_high_entities']:
+        reason = f"LOCAL ONLY - Found {len(sensitivity['tier1_high_entities'])} high-risk entities (SSN, names, credentials)"
+    elif sensitivity['tier0_protected']:
+        reason = "LOCAL ONLY - Protected context detected (medical/healthcare keywords)"
+    elif sensitivity['tier2_medium_entities']:
+        reason = f"ANONYMIZE - Found {len(sensitivity['tier2_medium_entities'])} medium-risk entities (IPs, device IDs)"
+    elif tier3_clear:
+        reason = "ANY BACKEND - No sensitive data detected"
+    else:
+        reason = "LOCAL (default safe routing)"
+
+    return {
+        "input_preview": request.text[:80] + "..." if len(request.text) > 80 else request.text,
+        "classification": {
+            "tier0_protected": sensitivity['tier0_protected'],
+            "tier1_high": len(sensitivity['tier1_high_entities']),
+            "tier2_medium": len(sensitivity['tier2_medium_entities']),
+            "tier3_clear": tier3_clear
+        },
+        "routing": {
+            "decision": sensitivity['route'],
+            "reason": reason
+        },
+        "presidio_detected": presidio_results,
+        "entities": {
+            "tier1_high": sensitivity['tier1_high_entities'],
+            "tier2_medium": sensitivity['tier2_medium_entities']
+        },
+        "backends": backend_connectivity,
+        "audit_safe_text": sensitivity.get('audit_safe_text', '[unavailable]')
+    }
+
 
 @app.post("/v1/chat/completions")
 async def chat_completion(request: ChatCompletionRequest, background_tasks: BackgroundTasks):

@@ -35,7 +35,7 @@ The key insight: sensitive data never crosses the boundary between planes.
 ## Team
 
 **Sheniese Aracena-Baez (Shay)** - Project Lead, Security Architecture
-- Designed 3-tier routing system
+- Designed 4-tier classification system
 - HIPAA compliance architecture
 - Security audit and gap remediation
 - Fail-closed error handling design
@@ -54,9 +54,21 @@ The key insight: sensitive data never crosses the boundary between planes.
 
 ---
 
-## 3-Tier Routing System
+## 4-Tier Classification System
 
-Unlike simple binary classification, our system uses three tiers:
+Unlike simple binary classification, our system uses four tiers:
+
+| Tier | Name | What Triggers It | Routing Decision |
+|------|------|------------------|------------------|
+| tier0 | PROTECTED | Keyword match (patient, diagnosis, vitals) | LOCAL ONLY |
+| tier1 | HIGH | Presidio: SSN, names, credentials, financial | LOCAL ONLY |
+| tier2 | MEDIUM | Presidio: IPs, device IDs, hostnames | ANONYMIZE -> cloud |
+| tier3 | CLEAR | Nothing detected | ANY backend |
+
+**Tier 0: Protected Context (Local Only)**
+- Healthcare keywords detected (patient, diagnosis, vitals, etc.)
+- No specific PII but contextually sensitive
+- Note: Uses hardcoded keyword set (known limitation)
 
 **Tier 1: High Risk (Local Only)**
 - Patient names, SSN, dates of birth
@@ -75,7 +87,7 @@ These never leave local infrastructure under any circumstances.
 
 These can go to cloud services after replacing identifiers with placeholders.
 
-**Tier 3: Safe (Cloud Allowed)**
+**Tier 3: Clear (Cloud Allowed)**
 - General technical questions
 - Code assistance requests
 - Concept explanations
@@ -138,7 +150,7 @@ All machines connect via Tailscale mesh VPN.
 zero-trust-hybrid-ai/
 ├── orchestrator/
 │   ├── main.py                 # FastAPI orchestrator service
-│   ├── sensitive_routing.py    # 3-tier routing logic (Shay)
+│   ├── sensitive_routing.py    # 4-tier classification logic (Shay)
 │   └── requirements.txt
 │
 ├── inference-nodes/

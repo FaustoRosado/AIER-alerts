@@ -4,26 +4,31 @@ sensitive_routing.py
 Zero-Trust Hybrid AI Pipeline - Sensitive Data Router
 
 Based on contributions from:
-- Sheniese Aracena-Baez (Shay): 3-tier routing architecture, HIPAA focus
+- Sheniese Aracena-Baez (Shay): 4-tier routing architecture, HIPAA focus
 - Javier Acosta: Presidio integration, Streamlit UI patterns
 
 This module provides intelligent routing for AI queries based on data sensitivity:
 
-Tiers:
-- Tier 1 (HIGH RISK)   → Local Only (Aegis/Ryzen-AI)
-- Tier 2 (MEDIUM RISK) → Anonymize → Cloud Allowed
-- Tier 3 (SAFE)        → Cloud Direct (AWS Bedrock optional)
+4-Tier Classification System:
+- Tier 0 (PROTECTED)   → Keyword match (patient, diagnosis, vitals) → LOCAL ONLY
+- Tier 1 (HIGH RISK)   → Presidio: SSN, names, credentials → LOCAL ONLY
+- Tier 2 (MEDIUM RISK) → Presidio: IPs, device IDs → ANONYMIZE → Cloud Allowed
+- Tier 3 (CLEAR)       → Nothing detected → ANY backend
 
 HIPAA Compliance Notes:
-- PHI (Protected Health Information) ALWAYS routes to Tier 1
+- PHI (Protected Health Information) ALWAYS routes to Tier 0 or Tier 1
 - No PHI ever transmitted to cloud services
 - Anonymized data in Tier 2 has all identifiers replaced with placeholders
 - Audit logging uses anonymized versions only
 
 Integration with Zero-Trust Pipeline:
-- Tier 1 → Route to Aegis (llama.cpp, port 8080) or Ryzen-AI (Ollama, port 11434)
-- Tier 2 → Anonymize, then route to local OR cloud (configurable)
-- Tier 3 → Route to fastest available (local preferred, cloud optional)
+- Tier 0/1 → Route to Aegis (llama.cpp, port 8080) or Ryzen-AI (Ollama, port 11434)
+- Tier 2   → Anonymize, then route to local OR cloud (configurable)
+- Tier 3   → Route to fastest available (local preferred, cloud optional)
+
+Known Limitations:
+- Tier 0 uses hardcoded keyword set (TIER0_PROTECTED_KEYWORDS)
+- Future: Replace with Presidio custom recognizers for domain-specific context
 """
 
 from enum import Enum
@@ -62,10 +67,11 @@ class RoutingDecision:
     backend: Backend
     original_text: str
     payload_text: str  # Anonymized if Tier 2
-    tier1_entities: List[Dict]
-    tier2_entities: List[Dict]
+    tier1_high_entities: List[Dict]
+    tier2_medium_entities: List[Dict]
     confidence: float
-    hipaa_relevant: bool
+    tier0_protected: bool
+    tier3_clear: bool
     audit_safe_text: str  # Always anonymized for logging
 
 
@@ -108,9 +114,9 @@ def get_anonymizer():
 # SENSITIVITY TIERS (Shay's contribution - enhanced)
 # ============================================================================
 
-# Tier 1 (HIGH RISK): NEVER send raw text to cloud
+# Tier 1 HIGH (HIGH RISK): NEVER send raw text to cloud
 # These trigger immediate local-only routing
-TIER_1_ENTITIES = {
+TIER1_HIGH_ENTITIES = {
     # === HIPAA Identifiers (18 Safe Harbor identifiers) ===
     "PERSON",              # Names
     "EMAIL_ADDRESS",       # Email
@@ -155,9 +161,9 @@ TIER_1_ENTITIES = {
     "GENETIC_DATA",        # Genetic information
 }
 
-# Tier 2 (MEDIUM RISK): Allowed after anonymization
+# Tier 2 MEDIUM (MEDIUM RISK): Allowed after anonymization
 # Can be sent to cloud if identifiers are replaced
-TIER_2_ENTITIES = {
+TIER2_MEDIUM_ENTITIES = {
     "IP_ADDRESS",          # IP addresses
     "MAC_ADDRESS",         # MAC addresses
     "DEVICE_ID",           # Device identifiers (non-medical)
@@ -171,8 +177,9 @@ TIER_2_ENTITIES = {
     "FILE_PATH",           # File paths
 }
 
-# Healthcare keywords that elevate to Tier 1 even without detected entities
-HIPAA_KEYWORDS = {
+# Tier 0 PROTECTED: Healthcare keywords that elevate to local-only even without detected entities
+# NOTE: This is a hardcoded Python set - known limitation. Future: use Presidio custom recognizers.
+TIER0_PROTECTED_KEYWORDS = {
     # Medical terms
     "patient", "diagnosis", "prognosis", "treatment", "prescription",
     "medication", "dosage", "symptoms", "medical history", "allergies",
@@ -257,34 +264,34 @@ def _detect_with_regex(text: str) -> List[Dict]:
     return results
 
 
-def _detect_hipaa_keywords(text: str) -> bool:
-    """Check for HIPAA-related keywords that indicate healthcare context."""
+def _detect_tier0_protected(text: str) -> bool:
+    """Check for Tier 0 protected keywords that indicate sensitive context (e.g., healthcare)."""
     text_lower = text.lower()
-    return any(keyword in text_lower for keyword in HIPAA_KEYWORDS)
+    return any(keyword in text_lower for keyword in TIER0_PROTECTED_KEYWORDS)
 
 
 def _classify_entities(
     results: List[Dict]
 ) -> Tuple[List[Dict], List[Dict]]:
     """
-    Classify detected entities into Tier 1 and Tier 2.
-    
+    Classify detected entities into Tier 1 High and Tier 2 Medium.
+
     Returns:
-        Tuple of (tier1_entities, tier2_entities)
+        Tuple of (tier1_high_entities, tier2_medium_entities)
     """
-    tier1 = []
-    tier2 = []
-    
+    tier1_high = []
+    tier2_medium = []
+
     for r in results:
         entity_type = r["type"]
         score = r.get("score", 0.0)
-        
-        if entity_type in TIER_1_ENTITIES and score >= MIN_CONFIDENCE_TIER1:
-            tier1.append(r)
-        elif entity_type in TIER_2_ENTITIES and score >= MIN_CONFIDENCE_TIER2:
-            tier2.append(r)
-    
-    return tier1, tier2
+
+        if entity_type in TIER1_HIGH_ENTITIES and score >= MIN_CONFIDENCE_TIER1:
+            tier1_high.append(r)
+        elif entity_type in TIER2_MEDIUM_ENTITIES and score >= MIN_CONFIDENCE_TIER2:
+            tier2_medium.append(r)
+
+    return tier1_high, tier2_medium
 
 
 # ============================================================================
@@ -391,85 +398,91 @@ def analyze_and_route(
 ) -> RoutingDecision:
     """
     Analyze input text and determine routing decision.
-    
-    This is the main entry point for the routing system.
-    
+
+    This is the main entry point for the 4-tier routing system.
+
     Args:
         text: The user's input text/query
         task_type: Type of task (general, code, validation, embedding)
         allow_cloud: Whether cloud routing is allowed (default: False for safety)
-    
+
     Returns:
         RoutingDecision with full metadata
-    
+
     Example:
         >>> result = analyze_and_route("Patient John Smith, SSN 123-45-6789")
         >>> result.route
         Route.LOCAL
         >>> result.backend
         Backend.AEGIS
-        >>> result.hipaa_relevant
+        >>> result.tier0_protected
         True
     """
-    
+
     # 1. Detect entities with Presidio (or fallback)
     results = _detect_with_presidio(text)
-    
+
     # 2. Classify into tiers
-    tier1, tier2 = _classify_entities(results)
-    
-    # 3. Check for HIPAA keywords (elevates to Tier 1 context)
-    hipaa_context = _detect_hipaa_keywords(text)
-    
+    tier1_high, tier2_medium = _classify_entities(results)
+
+    # 3. Check for Tier 0 protected keywords (elevates to local-only)
+    tier0_protected = _detect_tier0_protected(text)
+
     # 4. Determine route
-    if tier1:
-        # TIER 1: High risk - LOCAL ONLY, no exceptions
+    if tier1_high:
+        # TIER 1 HIGH: High risk - LOCAL ONLY, no exceptions
         route = Route.LOCAL
         payload = text  # Raw text stays local
-        confidence = max(e["score"] for e in tier1)
-        
-    elif tier2:
-        # TIER 2: Medium risk - Anonymize if cloud needed
-        if allow_cloud:
-            route = Route.ANONYMIZE_CLOUD
-            payload = _anonymize_with_presidio(text, tier2)
-        else:
-            route = Route.LOCAL
-            payload = text
-        confidence = max(e["score"] for e in tier2)
-        
-    elif hipaa_context:
-        # HIPAA keywords detected but no entities
-        # Conservative approach: treat as Tier 1
+        confidence = max(e["score"] for e in tier1_high)
+
+    elif tier0_protected:
+        # TIER 0 PROTECTED: Keywords detected but no entities
+        # Conservative approach: treat as high risk
         route = Route.LOCAL
         payload = text
         confidence = 0.7  # Keyword-based confidence
-        
+
+    elif tier2_medium:
+        # TIER 2 MEDIUM: Medium risk - Anonymize if cloud needed
+        if allow_cloud:
+            route = Route.ANONYMIZE_CLOUD
+            payload = _anonymize_with_presidio(text, tier2_medium)
+        else:
+            route = Route.LOCAL
+            payload = text
+        confidence = max(e["score"] for e in tier2_medium)
+
     else:
-        # TIER 3: Safe - Cloud allowed
+        # TIER 3 CLEAR: Safe - Cloud allowed
         if allow_cloud:
             route = Route.CLOUD
         else:
             route = Route.LOCAL
         payload = text
         confidence = 1.0  # High confidence it's safe
-    
-    # 5. Select backend
+
+    # 5. Compute tier3_clear
+    tier3_clear = (not tier0_protected and
+                   len(tier1_high) == 0 and
+                   len(tier2_medium) == 0)
+
+    # 6. Select backend
     backend = _select_backend(route, task_type)
-    
-    # 6. Create audit-safe version (always anonymized)
+
+    # 7. Create audit-safe version (always anonymized)
     audit_safe = anonymize_for_audit(text)
-    
-    # 7. Build response
+
+    # 8. Build response
     return RoutingDecision(
         route=route,
         backend=backend,
         original_text=text,
         payload_text=payload,
-        tier1_entities=tier1,
-        tier2_entities=tier2,
+        tier1_high_entities=tier1_high,
+        tier2_medium_entities=tier2_medium,
         confidence=confidence,
-        hipaa_relevant=hipaa_context or bool(tier1),
+        tier0_protected=tier0_protected,
+        tier3_clear=tier3_clear,
         audit_safe_text=audit_safe,
     )
 
@@ -477,20 +490,21 @@ def analyze_and_route(
 def analyze_and_route_dict(text: str, **kwargs) -> Dict[str, Any]:
     """
     Dictionary version of analyze_and_route for JSON serialization.
-    
+
     Use this for API responses.
     """
     decision = analyze_and_route(text, **kwargs)
-    
+
     return {
         "route": decision.route.value,
         "backend": decision.backend.value,
         "original_text": decision.original_text,
         "payload_text": decision.payload_text,
-        "tier1_entities": decision.tier1_entities,
-        "tier2_entities": decision.tier2_entities,
+        "tier0_protected": decision.tier0_protected,
+        "tier1_high_entities": decision.tier1_high_entities,
+        "tier2_medium_entities": decision.tier2_medium_entities,
+        "tier3_clear": decision.tier3_clear,
         "confidence": decision.confidence,
-        "hipaa_relevant": decision.hipaa_relevant,
         "audit_safe_text": decision.audit_safe_text,
     }
 
@@ -521,46 +535,48 @@ def get_safe_payload(text: str) -> str:
 # ============================================================================
 
 if __name__ == "__main__":
-    # Test samples covering all tiers
+    # Test samples covering all 4 tiers
     samples = [
-        # Tier 1: High risk (should route LOCAL)
-        "Patient: Maria Garcia, DOB: 03/15/1962, SSN: 987-65-4321. She reports chest pain.",
-        "Call John Smith at 555-123-4567 regarding his prescription.",
-        "API_KEY=sk-1234567890abcdef, please don't share this.",
-        
+        # Tier 0: Protected context (keywords only, should route LOCAL)
+        ("TIER 0 - Protected Context", "The patient's vitals look stable, blood pressure is improving."),
+        ("TIER 0 - Protected Context", "Please review the diagnosis and treatment plan."),
+
+        # Tier 1: High risk entities (should route LOCAL)
+        ("TIER 1 - High Risk (SSN)", "Patient: Maria Garcia, DOB: 03/15/1962, SSN: 987-65-4321."),
+        ("TIER 1 - High Risk (Phone)", "Call John Smith at 555-123-4567 regarding his prescription."),
+        ("TIER 1 - High Risk (API Key)", "API_KEY=sk-1234567890abcdef, please don't share this."),
+
         # Tier 2: Medium risk (should route ANONYMIZE_CLOUD or LOCAL)
-        "Server PROD-DB-01 is down, IP: 192.168.1.100, please investigate.",
-        "Check ticket ID TKT-2024-001 for employee EMP-5432.",
-        
-        # Tier 3: Safe (can route CLOUD)
-        "Explain the difference between symmetric and asymmetric encryption.",
-        "What are best practices for Kubernetes pod security?",
-        "Write a Python function to calculate factorial.",
-        
-        # HIPAA context without explicit entities
-        "The patient's vitals look stable, blood pressure is improving.",
-        "Please review the diagnosis and treatment plan.",
+        ("TIER 2 - Medium Risk (IP)", "Server PROD-DB-01 is down, IP: 192.168.1.100, please investigate."),
+        ("TIER 2 - Medium Risk (IDs)", "Check ticket ID TKT-2024-001 for employee EMP-5432."),
+
+        # Tier 3: Clear (can route CLOUD)
+        ("TIER 3 - Clear", "Explain the difference between symmetric and asymmetric encryption."),
+        ("TIER 3 - Clear", "What are best practices for Kubernetes pod security?"),
+        ("TIER 3 - Clear", "What is the square root of 144?"),
     ]
-    
+
     print("=" * 70)
-    print("ZERO-TRUST SENSITIVE ROUTING TEST")
+    print("ZERO-TRUST 4-TIER CLASSIFICATION TEST")
     print("=" * 70)
-    
-    for sample in samples:
-        print(f"\nInput: {sample[:60]}...")
+
+    for label, sample in samples:
+        print(f"\n[{label}]")
+        print(f"Input: {sample[:60]}...")
         result = analyze_and_route_dict(sample, allow_cloud=True)
-        
+
         print(f"  Route: {result['route'].upper()}")
         print(f"  Backend: {result['backend']}")
-        print(f"  HIPAA Relevant: {result['hipaa_relevant']}")
-        print(f"  Tier 1 Entities: {len(result['tier1_entities'])}")
-        print(f"  Tier 2 Entities: {len(result['tier2_entities'])}")
-        
+        print(f"  Tier 0 Protected: {result['tier0_protected']}")
+        print(f"  Tier 1 High: {len(result['tier1_high_entities'])} entities")
+        print(f"  Tier 2 Medium: {len(result['tier2_medium_entities'])} entities")
+        print(f"  Tier 3 Clear: {result['tier3_clear']}")
+
         if result['route'] == 'anonymize_cloud':
             print(f"  Payload: {result['payload_text'][:60]}...")
-        
+
         print(f"  Audit Safe: {result['audit_safe_text'][:60]}...")
-    
+
     print("\n" + "=" * 70)
     print("TEST COMPLETE")
     print("=" * 70)

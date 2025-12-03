@@ -21,20 +21,26 @@ This file contains critical context about the Zero-Trust Hybrid AI Pipeline proj
 
 **Sensitive data NEVER leaves local infrastructure.**
 
-The 3-Tier Routing System (Shay's design):
-- **Tier 1 (HIGH RISK)** → LOCAL ONLY (SSN, names, medical data, credentials)
-- **Tier 2 (MEDIUM RISK)** → Anonymize → Cloud allowed (IPs, device IDs)
-- **Tier 3 (SAFE)** → Cloud allowed (general questions)
+The 4-Tier Classification System (Shay's design):
+
+| Tier | Name | What Triggers It | Routing Decision |
+|------|------|------------------|------------------|
+| tier0 | PROTECTED | Keyword match (patient, diagnosis, vitals) | LOCAL ONLY |
+| tier1 | HIGH | Presidio: SSN, names, credentials, financial | LOCAL ONLY |
+| tier2 | MEDIUM | Presidio: IPs, device IDs, hostnames | ANONYMIZE -> cloud |
+| tier3 | CLEAR | Nothing detected | ANY backend |
+
+**Note:** tier0_protected uses a hardcoded keyword set, which is a known limitation. Future work includes making this dynamic via Presidio custom recognizers.
 
 ---
 
 ## TEAM CONTRIBUTIONS
 
 ### Sheniese (Shay) - Project Lead, Security Architecture
-**Role:** Project lead, 3-tier routing design, HIPAA compliance
+**Role:** Project lead, 4-tier classification design, HIPAA compliance
 **Files:** `orchestrator/sensitive_routing.py`
 **Key contributions:**
-- Designed and implemented 3-tier classification system
+- Designed and implemented 4-tier classification system
 - HIPAA 18 Safe Harbor identifier coverage
 - Fail-closed error handling architecture
 - Security audit and gap identification
@@ -151,7 +157,7 @@ POST /api/embeddings      - Generate embeddings
 zero-trust-hybrid-ai/
 ├── orchestrator/
 │   ├── main.py                    # FastAPI orchestrator
-│   ├── sensitive_routing.py       # Shay's 3-tier routing
+│   ├── sensitive_routing.py       # Shay's 4-tier classification
 │   └── requirements.txt           # Includes Presidio
 │
 ├── inference-nodes/
@@ -172,7 +178,7 @@ zero-trust-hybrid-ai/
 
 ## REMEMBER THESE FACTS
 
-1. **3-tier routing** (not binary) - Shay's contribution
+1. **4-tier classification** (not binary) - Shay's contribution
 2. **Aegis = llama.cpp on port 8080** (NOT Ollama)
 3. **Ryzen-AI = Ollama on port 11434** (USB-C drive, RAMDisk)
 4. **PHI detection uses Presidio + keyword matching**
@@ -185,7 +191,7 @@ zero-trust-hybrid-ai/
 
 ## WHEN HELPING WITH THIS PROJECT
 
-1. Always use the 3-tier routing system for sensitive data decisions
+1. Always use the 4-tier classification system for sensitive data decisions
 2. Remember Aegis uses llama.cpp (port 8080), not Ollama
 3. Check sensitivity before suggesting cloud services
 4. Reference Shay's `sensitive_routing.py` for PHI detection
