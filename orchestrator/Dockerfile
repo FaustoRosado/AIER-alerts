@@ -20,8 +20,12 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download spacy model for Presidio
+RUN python -m spacy download en_core_web_sm
+
 # Copy application code
 COPY main.py .
+COPY sensitive_routing.py .
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
