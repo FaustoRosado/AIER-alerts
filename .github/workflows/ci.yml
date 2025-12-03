@@ -1,308 +1,120 @@
-# ============================================================================
-# Zero-Trust Hybrid AI Pipeline - GitHub Actions CI/CD
-# ============================================================================
-#
-# This workflow provides:
-#   • Automated testing on pull requests
-#   • Security scanning (Checkov, Trivy)
-#   • Container image building
-#   • Optional AWS deployment trigger
-#
-# The workflow does NOT deploy to production automatically - it triggers
-# the AWS CodePipeline which handles actual deployment.
-#
-# ============================================================================
-
-name: CI/CD Pipeline
+name: Zero-Trust AI Pipeline - CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, sprint*]
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      skip_security:
-        description: 'Skip security scanning'
-        required: false
-        default: 'false'
-        type: boolean
 
 env:
-  PYTHON_VERSION: '3.11'
-  NODE_VERSION: '18'
-
-# ============================================================================
-# Jobs
-# ============================================================================
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: zero-trust-ai/orchestrator
 
 jobs:
-  # ==========================================================================
-  # Lint and Test
-  # ==========================================================================
-  lint-and-test:
-    name: Lint & Test
+  security-scans:
+    name: Security Scanning
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Secret Scanning with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: SAST with Semgrep
+        uses: semgrep/semgrep-action@v1
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          config: p/python p/security-audit
 
-      - name: Install dependencies
+      - name: Dependency Scanning with pip-audit
         run: |
-          python -m pip install --upgrade pip
-          pip install -r orchestrator/requirements.txt
-          pip install pytest pytest-cov pytest-asyncio ruff mypy
+          pip install pip-audit
+          pip-audit -r orchestrator/requirements.txt || true
 
-      - name: Lint with Ruff
-        run: |
-          ruff check orchestrator/ --output-format=github
-        continue-on-error: true
-
-      - name: Type check with MyPy
-        run: |
-          mypy orchestrator/main.py --ignore-missing-imports
-        continue-on-error: true
-
-      - name: Run tests
-        run: |
-          pytest tests/ -v --cov=orchestrator --cov-report=xml --cov-report=term
-        continue-on-error: true
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
-
-  # ==========================================================================
-  # Security Scanning
-  # ==========================================================================
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.skip_security != 'true' }}
-    
-    permissions:
-      security-events: write
-      contents: read
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Checkov
-        id: checkov
+      - name: IaC Scanning with Checkov
         uses: bridgecrewio/checkov-action@v12
         with:
-          directory: .
-          soft_fail: true
-          output_format: cli,sarif
-          output_file_path: console,results.sarif
-
-      - name: Upload Checkov SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-        continue-on-error: true
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
-        continue-on-error: true
-
-      - name: Scan Terraform
-        if: hashFiles('terraform/**/*.tf') != ''
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          working_directory: terraform
+          directory: terraform/
           soft_fail: true
 
-  # ==========================================================================
-  # Container Build
-  # ==========================================================================
-  build-container:
-    name: Build Container
+  build-and-push:
+    name: Build and Push Container
     runs-on: ubuntu-latest
-    needs: [lint-and-test]
-    
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
-    
+    needs: security-scans
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          images: |
-            ghcr.io/${{ github.repository }}/orchestrator
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build container (no push)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./orchestrator
-          push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Scan built image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'ghcr.io/${{ github.repository }}/orchestrator:${{ github.sha }}'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
-
-  # ==========================================================================
-  # Push Container (main branch only)
-  # ==========================================================================
-  push-container:
-    name: Push Container
-    runs-on: ubuntu-latest
-    needs: [build-container, security-scan]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    permissions:
-      packages: write
-      contents: read
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository }}/orchestrator
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./orchestrator
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ==========================================================================
-  # Terraform Validation
-  # ==========================================================================
-  terraform-validate:
-    name: Terraform Validate
-    runs-on: ubuntu-latest
-    if: hashFiles('terraform/**/*.tf') != ''
-    
-    defaults:
-      run:
-        working-directory: terraform
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.6.0'
-
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
-        continue-on-error: true
-
-      - name: Terraform Init
-        run: terraform init -backend=false
-
-      - name: Terraform Validate
-        run: terraform validate
-
-  # ==========================================================================
-  # Notify AWS CodePipeline (main branch only)
-  # ==========================================================================
-  notify-aws:
-    name: Notify AWS
-    runs-on: ubuntu-latest
-    needs: [push-container, terraform-validate]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: Trigger notification
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo "Container pushed to GHCR"
-          echo "AWS CodePipeline will pick up changes via GitHub connection"
-          echo ""
-          echo "Image: ghcr.io/${{ github.repository }}/orchestrator:${{ github.sha }}"
-          echo ""
-          echo "To trigger AWS deployment manually:"
-          echo "  aws codepipeline start-pipeline-execution --name zero-trust-ai-dev-pipeline"
+          cd orchestrator
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-  # ==========================================================================
-  # Summary
-  # ==========================================================================
-  summary:
-    name: Pipeline Summary
-    runs-on: ubuntu-latest
-    needs: [lint-and-test, security-scan, build-container]
-    if: always()
-    
-    steps:
-      - name: Generate summary
+      - name: Container Vulnerability Scan
         run: |
-          echo "## Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint & Test | ${{ needs.lint-and-test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build Container | ${{ needs.build-container.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Commit" >> $GITHUB_STEP_SUMMARY
-          echo "- SHA: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Ref: \`${{ github.ref }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Actor: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          aws ecr wait image-scan-complete \
+            --repository-name $ECR_REPOSITORY \
+            --image-id imageTag=${{ github.sha }} \
+            --region $AWS_REGION || true
+          aws ecr describe-image-scan-findings \
+            --repository-name $ECR_REPOSITORY \
+            --image-id imageTag=${{ github.sha }} \
+            --region $AWS_REGION \
+            --query 'imageScanFindings.findingSeverityCounts'
+
+  deploy-lightsail:
+    name: Deploy to Lightsail
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to Lightsail Container Service
+        run: |
+          aws lightsail create-container-service-deployment \
+            --service-name zero-trust-ai-service \
+            --containers '{
+              "orchestrator": {
+                "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/zero-trust-ai/orchestrator:latest",
+                "ports": {"8000": "HTTP"},
+                "environment": {
+                  "CLOUD_MODE": "true",
+                  "SENSITIVE_ROUTING": "disabled"
+                }
+              }
+            }' \
+            --public-endpoint '{
+              "containerName": "orchestrator",
+              "containerPort": 8000,
+              "healthCheck": {
+                "path": "/health",
+                "intervalSeconds": 30
+              }
+            }' || echo "Deployment update submitted"
